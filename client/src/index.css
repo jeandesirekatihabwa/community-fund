@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+@theme {
+    --font-sans: "Inter", sans-serif;
+}
+
+/* Base styling and Apple-like subtle tweaks */
+html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    background-color: #f8fafc; /* Tailwind slate-50 */
+}
+
+/* Glassmorphism utility */
+.glass {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+}
+
+/* Smooth input transitions */
+input, button {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
