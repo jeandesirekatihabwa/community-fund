@@ -1,31 +1,19 @@
-import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useQuery } from '@tanstack/react-query';
 import { Spinner, Card } from '../components/ui';
 import api from '../lib/api';
 
 export default function Dashboard() {
     const { user } = useAuth();
-    const [contributions, setContributions] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState(null);
 
-    useEffect(() => {
-        const fetchContributions = async () => {
-            if (!user) return;
-            
-            try {
-                const { data } = await api.get('/my-contributions');
-                setContributions(data);
-            } catch (err) {
-                console.error("Failed to fetch contributions", err);
-                setError("Unable to load your contributions at this time.");
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchContributions();
-    }, [user]);
+    const { data: contributions = [], isLoading, error } = useQuery({
+        queryKey: ['myContributions', user?.id],
+        queryFn: async () => {
+            const res = await api.get('/my-contributions');
+            return res.data;
+        },
+        enabled: !!user, // only fetch if a user exists
+    });
 
     if (isLoading) {
         return (
@@ -39,7 +27,7 @@ export default function Dashboard() {
         return (
             <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
                 <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600 ring-1 ring-inset ring-red-500/10">
-                    {error}
+                    {error instanceof Error ? error.message : "Unable to load your contributions at this time."}
                 </div>
             </div>
         );

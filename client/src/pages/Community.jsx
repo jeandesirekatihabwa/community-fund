@@ -1,28 +1,40 @@
-import { useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { io } from 'socket.io-client';
 import { Spinner, Card } from '../components/ui';
 import api from '../lib/api';
+import { useEffect } from 'react';
+
+const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default function Community() {
-    const [stats, setStats] = useState(null);
-    const [recent, setRecent] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const { user } = useAuth();
+    const queryClient = useQueryClient();
+    
+    const { data, isLoading, error } = useQuery({
+        queryKey: ['communityStats', user?.id], // re-fetch if user changes
+        queryFn: async () => {
+            const res = await api.get('/community-stats');
+            return res.data;
+        }
+    });
 
+    const stats = data?.stats;
+    const recent = data?.recent || [];
+
+    // Listen for real-time WebSocket updates
     useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const { data } = await api.get('/community-stats');
-                setStats(data.stats);
-                setRecent(data.recent);
-            } catch (err) {
-                console.error("Failed to fetch stats", err);
-                setError("Unable to load community statistics right now.");
-            } finally {
-                setIsLoading(false);
-            }
+        const socket = io(SOCKET_URL);
+
+        socket.on('stats_updated', () => {
+             // Invalidate the cache to trigger an immediate background refetch when someone donates
+            queryClient.invalidateQueries({ queryKey: ['communityStats'] });
+        });
+
+        return () => {
+            socket.disconnect();
         };
-        fetchStats();
-    }, []);
+    }, [queryClient]);
 
     if (isLoading) {
         return (
@@ -36,7 +48,7 @@ export default function Community() {
         return (
             <div className="max-w-5xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
                 <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600 ring-1 ring-inset ring-red-500/10 text-center">
-                    {error}
+                    {error instanceof Error ? error.message : "Unable to load community statistics right now."}
                 </div>
             </div>
         );

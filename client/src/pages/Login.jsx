@@ -115,6 +115,7 @@ export default function Login() {
                         </div>
 
                         <Button 
+                            type="submit"
                             className="w-full justify-center !rounded-xl !py-3" 
                             disabled={isLoading}
                         >

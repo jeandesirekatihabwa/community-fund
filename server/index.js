@@ -1,14 +1,82 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const sqlite3 = require('sqlite3').verbose();
 const { open } = require('sqlite');
+const http = require('http');
+const { Server } = require('socket.io');
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: '*',
+        methods: ['GET', 'POST']
+    }
+});
+
+// Configure Redis for Socket.IO horizontal scaling
+const { createClient } = require('redis');
+const { createAdapter } = require('@socket.io/redis-adapter');
+
+const pubClient = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
+const subClient = pubClient.duplicate();
+
+Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
+    io.adapter(createAdapter(pubClient, subClient));
+    console.log('[Redis] Socket.IO Adapter configured successfully.');
+}).catch((err) => {
+    console.error('[Redis] Failed to connect to Redis for Socket.IO adapter:', err);
+});
+
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
+
+// The Stripe Webhook requires the raw unparsed body to verify the signature
+app.post('/api/webhook', express.raw({type: 'application/json'}), async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    
+    let event;
+    try {
+        event = stripe.webhooks.constructEvent(
+            req.body, 
+            sig, 
+            process.env.STRIPE_WEBHOOK_SECRET
+        );
+    } catch (err) {
+        console.error(`[Webhook Error] Signature verification failed: ${err.message}`);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    if (event.type === 'payment_intent.succeeded') {
+        const paymentIntent = event.data.object;
+        const amount = paymentIntent.amount;
+        const currency = paymentIntent.currency;
+        const payment_intent_id = paymentIntent.id;
+        const user_id = paymentIntent.metadata?.user_id || null;
+        
+        try {
+            await db.run(
+                'INSERT INTO contributions (amount, currency, payment_intent_id, status, user_id) VALUES (?, ?, ?, ?, ?)',
+                [amount, currency, payment_intent_id, 'succeeded', user_id]
+            );
+            
+            console.log(`[Webhook] Recorded successful payment ${payment_intent_id} for user ${user_id}`);
+            io.emit('stats_updated');
+        } catch (dbErr) {
+            console.error(`[Webhook] Database insert failed:`, dbErr);
+            return res.status(500).send('Database Error');
+        }
+    }
+
+    // Return a 200 response to acknowledge receipt of the event
+    res.send({received: true});
+});
+
+// Parse JSON bodies for all remaining routes
 app.use(express.json());
 
 app.use((req, res, next) => {
@@ -36,6 +104,7 @@ let db;
             email TEXT,
             name TEXT,
             avatar TEXT,
+            password TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
 
@@ -58,7 +127,22 @@ const bcrypt = require('bcrypt');
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-app.post('/auth/google', async (req, res) => {
+// --- Rate Limiters ---
+// Create a strict rate limiter for authentication routes to prevent brute-force attacks
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // Limit each IP to 10 login/register requests per windowMs
+    message: { error: 'Too many authentication attempts from this IP, please try again after 15 minutes.' }
+});
+
+// Create a very strict rate limiter for payment intents to prevent card testing algorithms
+const paymentLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // Limit each IP to 5 payment intent creations per windowMs
+    message: { error: 'Too many payment requests from this IP. Please wait before trying another card.' }
+});
+
+app.post('/auth/google', authLimiter, async (req, res) => {
     const { token } = req.body;
     try {
         const ticket = await client.verifyIdToken({
@@ -89,7 +173,7 @@ app.post('/auth/google', async (req, res) => {
 });
 
 // Manual Registration
-app.post('/auth/register', async (req, res) => {
+app.post('/auth/register', authLimiter, async (req, res) => {
     const { name, email, password } = req.body;
     if (!name || !email || !password) {
         return res.status(400).json({ error: 'Name, email, and password are required' });
@@ -118,7 +202,7 @@ app.post('/auth/register', async (req, res) => {
 });
 
 // Manual Login
-app.post('/auth/login', async (req, res) => {
+app.post('/auth/login', authLimiter, async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
         return res.status(400).json({ error: 'Email and password are required' });
@@ -150,14 +234,17 @@ app.get('/', (req, res) => {
     res.send('Weekly Contribution API is running');
 });
 
-app.post('/create-payment-intent', async (req, res) => {
+app.post('/create-payment-intent', paymentLimiter, async (req, res) => {
     try {
-        const { amount, currency } = req.body;
+        const { amount, currency, user_id } = req.body;
 
         // Create a PaymentIntent with the order amount and currency
         const paymentIntent = await stripe.paymentIntents.create({
             amount: amount, // in cents
             currency: currency,
+            metadata: {
+                user_id: user_id
+            },
             automatic_payment_methods: {
                 enabled: true,
             },
@@ -171,18 +258,7 @@ app.post('/create-payment-intent', async (req, res) => {
     }
 });
 
-app.post('/record-contribution', async (req, res) => {
-    const { amount, currency, payment_intent_id, status, user_id } = req.body;
-    try {
-        await db.run(
-            'INSERT INTO contributions (amount, currency, payment_intent_id, status, user_id) VALUES (?, ?, ?, ?, ?)',
-            [amount, currency, payment_intent_id, status, user_id]
-        );
-        res.send({ success: true });
-    } catch (e) {
-        res.status(500).send({ error: e.message });
-    }
-});
+// Replaced by secure Server-Side /api/webhook logic
 
 // Middleware to verify session token
 const authenticateToken = (req, res, next) => {
@@ -243,6 +319,14 @@ app.get('/community-stats', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
+io.on('connection', (socket) => {
+    console.log(`[Socket] A user connected: ${socket.id}`);
+    
+    socket.on('disconnect', () => {
+        console.log(`[Socket] User disconnected: ${socket.id}`);
+    });
+});
+
+server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

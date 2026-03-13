@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model contributions {
+  id                Int       @id @default(autoincrement())
+  user_id           Int?
+  amount            Int?
+  currency          String?
+  payment_intent_id String?
+  status            String?
+  created_at        DateTime? @default(now())
+  users             users?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model users {
+  id            Int             @id @default(autoincrement())
+  google_id     String?         @unique(map: "sqlite_autoindex_users_1")
+  email         String?
+  name          String?
+  avatar        String?
+  created_at    DateTime?       @default(now())
+  password      String?
+  contributions contributions[]
+}

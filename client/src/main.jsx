@@ -1,21 +1,32 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.jsx'
-import { GoogleOAuthProvider } from '@react-oauth/google';
-import { AuthProvider } from './context/AuthContext';
-import { BrowserRouter } from 'react-router-dom';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import App from "./App";
+import { AuthProvider } from "./context/AuthContext";
+import "./index.css";
 
-const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: true, // typical enterprise default
+      staleTime: 1000 * 60, // 1 minute
+      retry: 1,
+    },
+  },
+});
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <GoogleOAuthProvider clientId={clientId}>
-      <AuthProvider>
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+      <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <App />
+          <AuthProvider>
+            <App />
+          </AuthProvider>
         </BrowserRouter>
-      </AuthProvider>
+      </QueryClientProvider>
     </GoogleOAuthProvider>
-  </StrictMode>,
-)
+  </React.StrictMode>
+);
