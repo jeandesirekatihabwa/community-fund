@@ -3,6 +3,8 @@ import { useStripe } from "@stripe/react-stripe-js";
 import { Link } from "react-router-dom";
 import { Spinner, Card } from "../components/ui";
 
+import api from "../lib/api";
+
 export default function Completion() {
     const stripe = useStripe();
     const [message, setMessage] = useState("We are verifying your payment status...");
@@ -17,11 +19,21 @@ export default function Completion() {
 
         if (!clientSecret) return;
 
-        stripe.retrievePaymentIntent(clientSecret).then(({ paymentIntent }) => {
+        stripe.retrievePaymentIntent(clientSecret).then(async ({ paymentIntent }) => {
             switch (paymentIntent.status) {
                 case "succeeded":
-                    setMessage("Your €5 contribution was successful!");
-                    setStatus("success");
+                    try {
+                        // Local fallback: tell the server the payment succeeded
+                        await api.post('/verify-payment', {
+                            payment_intent_id: paymentIntent.id
+                        });
+                        setMessage("Your €5 contribution was successful!");
+                        setStatus("success");
+                    } catch (err) {
+                        console.error('Local sync failed', err);
+                        setMessage("Payment succeeded, but we had trouble updating your dashboard.");
+                        setStatus("success");
+                    }
                     break;
                 case "processing":
                     setMessage("Your payment is processing.");

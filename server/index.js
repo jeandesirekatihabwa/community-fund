@@ -3,17 +3,24 @@ const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const sqlite3 = require('sqlite3').verbose();
-const { open } = require('sqlite');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 const http = require('http');
 const { Server } = require('socket.io');
+
+const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    'http://localhost:5173',
+    'http://localhost:5174'
+].filter(Boolean);
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: '*',
-        methods: ['GET', 'POST']
+        origin: allowedOrigins.length > 0 ? allowedOrigins : '*',
+        methods: ['GET', 'POST'],
+        credentials: true
     }
 });
 
@@ -33,7 +40,10 @@ Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
 
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+app.use(cors({
+    origin: allowedOrigins.length > 0 ? allowedOrigins : '*',
+    credentials: true
+}));
 
 // The Stripe Webhook requires the raw unparsed body to verify the signature
 app.post('/api/webhook', express.raw({type: 'application/json'}), async (req, res) => {
@@ -41,10 +51,16 @@ app.post('/api/webhook', express.raw({type: 'application/json'}), async (req, re
     
     let event;
     try {
+        const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+        if (!webhookSecret) {
+            console.error('[Webhook Error] STRIPE_WEBHOOK_SECRET is not configured.');
+            return res.status(500).send('Webhook secret missing');
+        }
+
         event = stripe.webhooks.constructEvent(
             req.body, 
             sig, 
-            process.env.STRIPE_WEBHOOK_SECRET
+            webhookSecret
         );
     } catch (err) {
         console.error(`[Webhook Error] Signature verification failed: ${err.message}`);
@@ -59,10 +75,15 @@ app.post('/api/webhook', express.raw({type: 'application/json'}), async (req, re
         const user_id = paymentIntent.metadata?.user_id || null;
         
         try {
-            await db.run(
-                'INSERT INTO contributions (amount, currency, payment_intent_id, status, user_id) VALUES (?, ?, ?, ?, ?)',
-                [amount, currency, payment_intent_id, 'succeeded', user_id]
-            );
+            await prisma.contributions.create({
+                data: {
+                    amount,
+                    currency,
+                    payment_intent_id,
+                    status: 'succeeded',
+                    user_id: user_id ? parseInt(user_id) : null
+                }
+            });
             
             console.log(`[Webhook] Recorded successful payment ${payment_intent_id} for user ${user_id}`);
             io.emit('stats_updated');
@@ -90,36 +111,8 @@ app.get('/config', (req, res) => {
     });
 });
 
-// database setup
-let db;
-(async () => {
-    db = await open({
-        filename: './database.sqlite',
-        driver: sqlite3.Database
-    });
-    await db.exec(`
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            google_id TEXT UNIQUE,
-            email TEXT,
-            name TEXT,
-            avatar TEXT,
-            password TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE TABLE IF NOT EXISTS contributions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            amount INTEGER,
-            currency TEXT,
-            payment_intent_id TEXT,
-            status TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(user_id) REFERENCES users(id)
-        );
-    `);
-})();
+// database setup (Prisma handles initialization automatically)
+// No manual table creation needed as Prisma migrations handle schema.
 
 const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
@@ -152,14 +145,14 @@ app.post('/auth/google', authLimiter, async (req, res) => {
         const payload = ticket.getPayload();
         const { sub: google_id, email, name, picture: avatar } = payload;
 
-        let user = await db.get('SELECT * FROM users WHERE google_id = ?', [google_id]);
+        let user = await prisma.users.findUnique({
+            where: { google_id }
+        });
 
         if (!user) {
-            const result = await db.run(
-                'INSERT INTO users (google_id, email, name, avatar) VALUES (?, ?, ?, ?)',
-                [google_id, email, name, avatar]
-            );
-            user = { id: result.lastID, google_id, email, name, avatar };
+            user = await prisma.users.create({
+                data: { google_id, email, name, avatar }
+            });
         }
 
         // Create a session token for our app
@@ -180,18 +173,19 @@ app.post('/auth/register', authLimiter, async (req, res) => {
     }
 
     try {
-        const existingUser = await db.get('SELECT * FROM users WHERE email = ?', [email]);
+        const existingUser = await prisma.users.findFirst({
+            where: { email }
+        });
+
         if (existingUser) {
             return res.status(400).json({ error: 'User with this email already exists' });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const result = await db.run(
-            'INSERT INTO users (email, name, password) VALUES (?, ?, ?)',
-            [email, name, hashedPassword]
-        );
+        const user = await prisma.users.create({
+            data: { email, name, password: hashedPassword }
+        });
 
-        const user = { id: result.lastID, email, name, avatar: null };
         const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' });
 
         res.json({ user, token });
@@ -209,7 +203,10 @@ app.post('/auth/login', authLimiter, async (req, res) => {
     }
 
     try {
-        const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
+        const user = await prisma.users.findFirst({
+            where: { email }
+        });
+
         if (!user || !user.password) {
             return res.status(401).json({ error: 'Invalid email or password' });
         }
@@ -258,8 +255,6 @@ app.post('/create-payment-intent', paymentLimiter, async (req, res) => {
     }
 });
 
-// Replaced by secure Server-Side /api/webhook logic
-
 // Middleware to verify session token
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
@@ -280,13 +275,62 @@ const authenticateToken = (req, res, next) => {
     });
 };
 
+// Temporary local fallback since webhook isn't accessible from internet
+app.post('/api/verify-payment', authenticateToken, async (req, res) => {
+    const { payment_intent_id } = req.body;
+    
+    if (!payment_intent_id) {
+        return res.status(400).send({ error: 'Missing payment intent ID' });
+    }
+
+    try {
+        // Retrieve the payment intent from Stripe to confirm it actually succeeded
+        const paymentIntent = await stripe.paymentIntents.retrieve(payment_intent_id);
+        
+        if (paymentIntent.status !== 'succeeded') {
+            return res.status(400).send({ error: 'Payment has not succeeded' });
+        }
+
+        // Check if we already recorded this payment
+        const existing = await prisma.contributions.findFirst({
+            where: { payment_intent_id }
+        });
+
+        if (existing) {
+            return res.send({ success: true, message: 'Already recorded' });
+        }
+
+        const amount = paymentIntent.amount;
+        const currency = paymentIntent.currency;
+        const user_id = paymentIntent.metadata?.user_id || req.user.id;
+        
+        // Save the contribution
+        await prisma.contributions.create({
+            data: {
+                amount,
+                currency,
+                payment_intent_id,
+                status: 'succeeded',
+                user_id: user_id ? parseInt(user_id) : null
+            }
+        });
+        
+        console.log(`[Local Sync] Recorded successful payment ${payment_intent_id} for user ${user_id}`);
+        io.emit('stats_updated');
+        
+        res.send({ success: true, message: 'Payment recorded locally' });
+    } catch (e) {
+        console.error("Local sync error:", e);
+        res.status(500).send({ error: e.message });
+    }
+});
 app.get('/my-contributions', authenticateToken, async (req, res) => {
     try {
         console.log("Fetching contributions for user ID:", req.user.id);
-        const contributions = await db.all(
-            'SELECT * FROM contributions WHERE user_id = ? ORDER BY created_at DESC',
-            [req.user.id]
-        );
+        const contributions = await prisma.contributions.findMany({
+            where: { user_id: req.user.id },
+            orderBy: { created_at: 'desc' }
+        });
         res.json(contributions);
     } catch (e) {
         console.error("DB Query Failed GET /my-contributions:", e);
@@ -296,24 +340,40 @@ app.get('/my-contributions', authenticateToken, async (req, res) => {
 
 app.get('/community-stats', async (req, res) => {
     try {
-        const result = await db.get(
-            `SELECT 
-                COUNT(*) as total_contributions, 
-                SUM(amount) as total_amount,
-                COUNT(DISTINCT user_id) as total_contributors
-             FROM contributions WHERE status = 'succeeded'`
-        );
+        const aggregate = await prisma.contributions.aggregate({
+            _count: { id: true },
+            _sum: { amount: true },
+            where: { status: 'succeeded' }
+        });
+
+        const contributorCount = await prisma.contributions.groupBy({
+            by: ['user_id'],
+            where: { status: 'succeeded' }
+        });
+
+        const stats = {
+            total_contributions: aggregate._count.id,
+            total_amount: aggregate._sum.amount,
+            total_contributors: contributorCount.length
+        };
 
         // Get recent contributions
-        const recent = await db.all(
-            `SELECT c.amount, c.created_at, u.name, u.avatar 
-             FROM contributions c 
-             LEFT JOIN users u ON c.user_id = u.id 
-             WHERE c.status = 'succeeded' 
-             ORDER BY c.created_at DESC LIMIT 5`
-        );
+        const recentRaw = await prisma.contributions.findMany({
+            where: { status: 'succeeded' },
+            orderBy: { created_at: 'desc' },
+            take: 5,
+            include: { users: true }
+        });
 
-        res.json({ stats: result, recent });
+        // Map to match the previous structure
+        const recent = recentRaw.map(c => ({
+            amount: c.amount,
+            created_at: c.created_at,
+            name: c.users?.name,
+            avatar: c.users?.avatar
+        }));
+
+        res.json({ stats, recent });
     } catch (e) {
         res.status(500).send({ error: e.message });
     }
