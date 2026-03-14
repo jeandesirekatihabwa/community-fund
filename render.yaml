@@ -4,7 +4,7 @@ services:
     name: community-fund-api
     env: docker
     dockerContext: server
-    dockerfilePath: Dockerfile
+    dockerfilePath: server/Dockerfile
     plan: free
     region: oregon # or your preferred region
     envVars:
@@ -37,7 +37,7 @@ services:
     name: community-fund-client
     env: docker
     dockerContext: client
-    dockerfilePath: Dockerfile
+    dockerfilePath: client/Dockerfile
     plan: free
     region: oregon
     envVars:
