@@ -1,8 +1,13 @@
-# Use Node.js LTS
+# Use Node.js LTS (slim)
 FROM node:20-slim
 
-# Install OpenSSL for Prisma
-RUN apt-get update -y && apt-get install -y openssl
+# Install system dependencies
+# openssl is required for Prisma
+# build-essential, python3 etc are sometimes needed for native builds like bcrypt
+RUN apt-get update -y && \
+    apt-get install -y openssl build-essential python3 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Create app directory
 WORKDIR /app
@@ -10,14 +15,16 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install --production
+# Install ALL dependencies (including dev deps for prisma cli)
+RUN npm install
 
-# Copy Prisma schema and generate client
+# Copy Prisma schema
 COPY prisma ./prisma/
+
+# Generate Prisma Client
 RUN npx prisma generate
 
-# Copy application source
+# Copy the rest of the application
 COPY . .
 
 # Set production environment

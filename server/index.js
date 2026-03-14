@@ -28,15 +28,19 @@ const io = new Server(server, {
 const { createClient } = require('redis');
 const { createAdapter } = require('@socket.io/redis-adapter');
 
-const pubClient = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
-const subClient = pubClient.duplicate();
+if (process.env.REDIS_URL) {
+    const pubClient = createClient({ url: process.env.REDIS_URL });
+    const subClient = pubClient.duplicate();
 
-Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
-    io.adapter(createAdapter(pubClient, subClient));
-    console.log('[Redis] Socket.IO Adapter configured successfully.');
-}).catch((err) => {
-    console.error('[Redis] Failed to connect to Redis for Socket.IO adapter:', err);
-});
+    Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
+        io.adapter(createAdapter(pubClient, subClient));
+        console.log('[Redis] Socket.IO Adapter configured successfully.');
+    }).catch((err) => {
+        console.error('[Redis] Failed to connect to Redis for Socket.IO adapter:', err);
+    });
+} else {
+    console.log('[Redis] skipping Redis adapter (no REDIS_URL provided)');
+}
 
 const PORT = process.env.PORT || 3001;
 
