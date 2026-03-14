@@ -1,47 +1,79 @@
-# community-fund
-A full-stack React and Node.js web application that allows users to seamlessly make community contributions using Stripe, Google Pay, and Apple Pay. Features robust authentication and a personal contribution dashboard.
+# 🌍 Community Fund
 
-## Prerequisites
+A high-performance, full-stack application for collective community contributions. Built with a modern tech stack focused on security, scalability, and an exceptional user experience.
 
-- [Node.js](https://nodejs.org/) installed.
-- A [Stripe](https://stripe.com/) account.
+![Premium UI](https://img.shields.io/badge/UI-Premium-indigo)
+![Stripe](https://img.shields.io/badge/Payments-Stripe-blue)
+![Prisma](https://img.shields.io/badge/ORM-Prisma-darkblue)
+![React](https://img.shields.io/badge/Frontend-React-blue)
 
-## Setup
+## ✨ Core Features
 
-1.  **Configure Backend**:
-    - Navigate to `server` directory.
-    - Rename `.env.example` (or create `.env`) and add your Stripe keys:
-      ```
-      STRIPE_SECRET_KEY=sk_test_...
-      STRIPE_PUBLISHABLE_KEY=pk_test_...
-      PORT=3001
-      STRIPE_WEBHOOK_SECRET=whsec_your_secret_here
-      ```
-    - Install dependencies: `cd server && npm install`
+- **Professional UI/UX**: A clean, modern interface built with Tailwind CSS and premium design patterns.
+- **Secure Payments**: Integrated with **Stripe** to support Credit Cards, Google Pay, and Apple Pay.
+- **Real-Time Dashboard**: Contribution statistics update instantly across the community using **Socket.IO**.
+- **Robust Persistence**: Data managed via **Prisma ORM** for type-safety and seamless database migrations (PostgreSQL/SQLite).
+- **Authentication**: Secure JWT-based authentication with Google OAuth integration.
+- **Deployment Ready**: Fully containerized using **Docker** and pre-configured for Cloud deployment.
 
-2.  **Configure Frontend**:
-    - The frontend connects to `http://localhost:3001`. Ensure backend is running.
-    - Install dependencies: `cd client && npm install`
+## 🛠️ Technology Stack
 
-## Running the App
+- **Frontend**: React 19, Tailwind CSS, TanStack Query (React Query)
+- **Backend**: Node.js, Express, Socket.IO
+- **Database**: PostgreSQL (Prisma ORM)
+- **Ops**: Docker, Nginx (for optimized frontend serving)
+- **Security**: JWT, Bcrypt, Rate Limiting, Stripe Webhooks
 
-1.  **Start Backend**:
-    ```bash
-    cd server
-    node index.js
-    ```
+## 🚀 Quick Start (Local Development)
 
-2.  **Start Frontend**:
-    ```bash
-    cd client
-    npm run dev
-    ```
+### 1. Prerequisites
+- Node.js (v18+)
+- A Stripe account (for API keys)
 
-3.  Open `http://localhost:5173` in your browser.
+### 2. Backend Setup
+```bash
+cd server
+npm install
+# Create .env from .env.example
+npx prisma generate
+npx prisma db push
+npm run dev
+```
 
-## Features
+### 3. Frontend Setup
+```bash
+cd client
+npm install
+# Create .env from .env.example
+npm run dev
+```
 
-- **Professional UI**: Clean, modern interface using Tailwind CSS.
-- **Stripe Integration**: Secure payment processing with support for Google Pay and secure webhooks.
-- **Scalable Real-Time Updates**: Redis-backed Socket.IO integration for live dashboard updates.
-- **Backend Database**: SQLite database to track contribution status.
+## 🏗️ Deployment Guide
+
+This application is ready for production. Follow the steps below:
+
+### 1. Database
+Provision a PostgreSQL database (e.g., [Neon](https://neon.tech) or Supabase) and set your `DATABASE_URL`.
+
+### 2. Environment Variables
+Ensure the following variables are set in your cloud provider:
+
+**Server**:
+- `DATABASE_URL`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `JWT_SECRET`, `FRONTEND_URL`
+
+**Client**:
+- `VITE_API_URL`, `VITE_GOOGLE_CLIENT_ID`
+
+### 3. Docker Support
+The app is shipping with multi-stage Dockerfiles for both Client (Nginx optimized) and Server (Node LTS).
+
+```bash
+# Production Build
+docker-compose up --build
+```
+
+## 📄 License
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+*Built with ❤️ for the community.*

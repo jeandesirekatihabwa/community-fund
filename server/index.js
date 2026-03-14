@@ -100,6 +100,10 @@ app.post('/api/webhook', express.raw({type: 'application/json'}), async (req, re
 // Parse JSON bodies for all remaining routes
 app.use(express.json());
 
+// Health check for production monitoring
+app.get('/health', (req, res) => {
+    res.status(200).send({ status: 'healthy', uptime: process.uptime() });
+});
 app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
     next();
