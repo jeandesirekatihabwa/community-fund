@@ -1,0 +1,51 @@
+services:
+  # Backend API
+  - type: web
+    name: community-fund-api
+    env: docker
+    dockerContext: server
+    dockerfilePath: Dockerfile
+    plan: free
+    region: oregon # or your preferred region
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        sync: false
+        placeholder: "Your Neon PostgreSQL Connection String"
+      - key: STRIPE_SECRET_KEY
+        sync: false
+        placeholder: "Your Stripe Secret Key (sk_live_...)"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+        placeholder: "Your Stripe Webhook Secret (whsec_...)"
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+        placeholder: "Your Google Client ID"
+      - key: FRONTEND_URL
+        fromService:
+          name: community-fund-client
+          type: web
+          property: host
+
+  # Frontend Client
+  - type: web
+    name: community-fund-client
+    env: docker
+    dockerContext: client
+    dockerfilePath: Dockerfile
+    plan: free
+    region: oregon
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          name: community-fund-api
+          type: web
+          property: host
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false
+        placeholder: "Your Google Client ID"
