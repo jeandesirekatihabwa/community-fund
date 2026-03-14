@@ -275,8 +275,9 @@ const authenticateToken = (req, res, next) => {
     });
 };
 
-// Temporary local fallback since webhook isn't accessible from internet
-app.post('/api/verify-payment', authenticateToken, async (req, res) => {
+// Local fallback for development environment without webhook tunneling
+if (process.env.NODE_ENV !== 'production') {
+    app.post('/api/verify-payment', authenticateToken, async (req, res) => {
     const { payment_intent_id } = req.body;
     
     if (!payment_intent_id) {
@@ -324,6 +325,7 @@ app.post('/api/verify-payment', authenticateToken, async (req, res) => {
         res.status(500).send({ error: e.message });
     }
 });
+}
 app.get('/my-contributions', authenticateToken, async (req, res) => {
     try {
         console.log("Fetching contributions for user ID:", req.user.id);
