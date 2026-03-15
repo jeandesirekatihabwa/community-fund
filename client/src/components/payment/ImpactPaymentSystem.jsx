@@ -127,9 +127,9 @@ export default function ImpactPaymentSystem({ amount = 500, onSuccess }) {
                                 <div className="w-full min-h-[64px] flex justify-center">
                                     {publishableKey && (
                                         <GooglePayButton
-                                            environment="PRODUCTION"
+                                            environment="TEST"
                                             buttonColor="black"
-                                            buttonType="checkout"
+                                            buttonType="donate"
                                             buttonSizeMode="fill"
                                             style={{ width: '100%', height: '64px' }}
                                             paymentRequest={{
@@ -153,8 +153,8 @@ export default function ImpactPaymentSystem({ amount = 500, onSuccess }) {
                                                     },
                                                 ],
                                                 merchantInfo: {
-                                                    merchantId: 'BCR2DN6T6X6X6X6X', // Replace with your real Merchant ID if needed
-                                                    merchantName: 'Community Fund',
+                                                    merchantId: '12345678901234567890', 
+                                                    merchantName: 'Community Fund Demo',
                                                 },
                                                 transactionInfo: {
                                                     totalPriceStatus: 'FINAL',
