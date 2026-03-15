@@ -80,19 +80,19 @@ export default function Home() {
                         className="space-y-8"
                     >
                         <div className="flex items-center gap-2">
-                            <span className="bg-indigo-600/10 text-indigo-700 text-xs font-black uppercase tracking-widest px-4 py-2 rounded-full border border-indigo-100 flex items-center gap-2">
+                            <span className="bg-emerald-600/10 text-emerald-700 text-xs font-black uppercase tracking-widest px-4 py-2 rounded-full border border-emerald-100 flex items-center gap-2">
                                 <Sparkles size={14} className="animate-pulse" />
-                                Scalable Financial Impact
+                                Community Solidarity
                             </span>
                         </div>
 
                         <h1 className="text-6xl md:text-7xl font-extrabold tracking-tighter text-slate-900 leading-[1.1]">
-                            The Future of <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600">Community Support</span>
+                            Good <br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 italic uppercase">Vibes</span>
                         </h1>
 
                         <p className="text-xl text-slate-500 font-medium leading-relaxed max-w-lg">
-                            Building a self-sustaining ecosystem for micro-contributions, trusted by over <span className="text-slate-900 font-extrabold">10 Million</span> heroes globally.
+                            Empowering the <span className="text-slate-900 font-extrabold underline decoration-emerald-500 underline-offset-4">Burundian Community in Ireland</span> through collective impact and shared Good Vibes.
                         </p>
 
                         <div className="grid grid-cols-3 gap-6 py-4">
@@ -144,14 +144,14 @@ export default function Home() {
                                         {stripePromise && showPayment ? (
                                             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 w-full">
                                                 <div className="flex justify-start mb-8">
-                                                    <button onClick={() => setShowPayment(false)} className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 hover:text-indigo-600 transition-colors">
+                                                    <button onClick={() => setShowPayment(false)} className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 hover:text-emerald-600 transition-colors">
                                                         <ChevronLeft size={16} />
-                                                        Back to Mission
+                                                        Back to Good Vibes
                                                     </button>
                                                 </div>
                                                 <Elements stripe={stripePromise} options={{
                                                     clientSecret,
-                                                    appearance: { theme: 'stripe', variables: { colorPrimary: '#4f46e5' } }
+                                                    appearance: { theme: 'stripe', variables: { colorPrimary: '#059669' } }
                                                 }}>
                                                     <ImpactPaymentSystem
                                                         amount={customAmount * 100}
@@ -162,11 +162,11 @@ export default function Home() {
                                         ) : (
                                             <div className="flex flex-col items-center space-y-10">
                                                 <div className="text-center">
-                                                    <div className="inline-flex items-center justify-center w-24 h-24 rounded-[2.5rem] bg-gradient-to-br from-indigo-600 to-indigo-700 text-white mb-8 shadow-2xl shadow-indigo-100 hover:rotate-6 transition-transform">
+                                                    <div className="inline-flex items-center justify-center w-24 h-24 rounded-[2.5rem] bg-gradient-to-br from-emerald-600 to-emerald-700 text-white mb-8 shadow-2xl shadow-emerald-100 hover:rotate-6 transition-transform">
                                                         <Heart size={44} className="fill-white/20" />
                                                     </div>
-                                                    <h2 className="text-3xl font-black tracking-tight text-slate-900 mb-2">Initialize Support</h2>
-                                                    <p className="text-slate-500 font-medium">Verify your session to reveal 1-tap micro-contribution.</p>
+                                                    <h2 className="text-3xl font-black tracking-tight text-slate-900 mb-2">Initialize Vibe</h2>
+                                                    <p className="text-slate-500 font-medium whitespace-nowrap">Verify session to contribute to your community.</p>
                                                 </div>
 
                                                 {paymentError && (
@@ -183,7 +183,7 @@ export default function Home() {
                                                             <button
                                                                 key={amt}
                                                                 onClick={() => setCustomAmount(amt)}
-                                                                className={`flex-1 py-3 rounded-xl font-black text-sm transition-all border ${customAmount === amt ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-100' : 'bg-slate-50 text-slate-400 border-slate-100 hover:border-indigo-200'}`}
+                                                                className={`flex-1 py-3 rounded-xl font-black text-sm transition-all border ${customAmount === amt ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-100 hover:border-emerald-200'}`}
                                                             >
                                                                 €{amt}
                                                             </button>
@@ -192,9 +192,9 @@ export default function Home() {
                                                 </div>
 
                                                 <div className="w-full rounded-[2.5rem] bg-slate-900 p-10 text-center text-white shadow-2xl relative overflow-hidden group">
-                                                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/20 to-emerald-600/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                                     <span className="block text-7xl font-black tracking-tighter mb-2 italic">€{customAmount.toFixed(2)}</span>
-                                                    <span className="text-indigo-300 text-[10px] font-black uppercase tracking-[0.3em]">Direct Contribution</span>
+                                                    <span className="text-emerald-300 text-[10px] font-black uppercase tracking-[0.3em]">Direct Contribution</span>
                                                 </div>
 
                                                 <motion.button
@@ -202,7 +202,7 @@ export default function Home() {
                                                     whileTap={{ scale: 0.98 }}
                                                     onClick={initializePayment}
                                                     disabled={isStartingPayment}
-                                                    className="group relative flex w-full items-center justify-center gap-3 rounded-[1.5rem] bg-indigo-600 px-8 py-6 text-xl font-black text-white shadow-2xl shadow-indigo-100 hover:bg-indigo-700 transition-all disabled:opacity-70"
+                                                    className="group relative flex w-full items-center justify-center gap-3 rounded-[1.5rem] bg-emerald-600 px-8 py-6 text-xl font-black text-white shadow-2xl shadow-emerald-100 hover:bg-emerald-700 transition-all disabled:opacity-70"
                                                 >
                                                     {isStartingPayment ? (
                                                         <Spinner className="w-6 h-6" />
@@ -215,7 +215,7 @@ export default function Home() {
                                                 </motion.button>
 
                                                 <p className="text-[10px] text-center text-slate-400 font-black uppercase tracking-widest flex items-center gap-2">
-                                                    <ShieldCheck size={14} className="text-indigo-600" />
+                                                    <ShieldCheck size={14} className="text-emerald-600" />
                                                     Secured by Multi-Factor Biometric Encryption
                                                 </p>
                                             </div>

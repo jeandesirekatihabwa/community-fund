@@ -29,7 +29,7 @@ export default function ImpactPaymentSystem({ amount = 500, onSuccess }) {
             country: 'FR',
             currency: 'eur',
             total: {
-                label: 'Community Support',
+                label: 'Good Vibes Contribution',
                 amount: amount,
             },
             requestPayerName: true,
@@ -130,8 +130,8 @@ export default function ImpactPaymentSystem({ amount = 500, onSuccess }) {
                         <div className="w-24 h-24 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500 mb-6 shadow-2xl shadow-emerald-100 border border-emerald-100">
                             <CheckCircle2 size={48} />
                         </div>
-                        <h3 className="text-3xl font-black text-slate-900 mb-2 italic tracking-tighter">Live Success</h3>
-                        <p className="text-slate-500 font-medium tracking-tight">Your contribution has been recorded.</p>
+                        <h3 className="text-3xl font-black text-slate-900 mb-2 italic tracking-tighter">Solidarity Success</h3>
+                        <p className="text-slate-500 font-medium tracking-tight">Your Good Vibes contribution is live.</p>
                     </motion.div>
                 ) : (
                     <div className="space-y-6">
@@ -140,14 +140,14 @@ export default function ImpactPaymentSystem({ amount = 500, onSuccess }) {
                             {paymentRequest && (
                                 <button
                                     onClick={() => setActiveTab('wallet')}
-                                    className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'wallet' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'wallet' ? 'bg-white shadow-md text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
                                 >
                                     <Smartphone size={14} /> {walletType}
                                 </button>
                             )}
                             <button
                                 onClick={() => setActiveTab('card')}
-                                className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'card' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+                                className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'card' ? 'bg-white shadow-md text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
                             >
                                 <CreditCard size={14} /> Direct Card
                             </button>

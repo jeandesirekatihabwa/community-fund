@@ -18,18 +18,18 @@ export default function Navbar() {
   return (
     <>
       {/* Desktop Header - Visible only on md+ */}
-      <nav className="hidden md:block sticky top-0 z-50 glass border-b border-indigo-100/50 shadow-sm backdrop-blur-md">
+            <nav className="hidden md:block sticky top-0 z-50 glass border-b border-emerald-100/50 shadow-sm backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <Link to="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-extrabold shadow-lg">C</div>
-              <span className="font-extrabold text-2xl tracking-tighter">Community<span className="text-indigo-600">Fund</span></span>
+              <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-extrabold shadow-lg">G</div>
+              <span className="font-extrabold text-2xl tracking-tighter">Good<span className="text-emerald-600 italic">Vibes</span></span>
             </Link>
             
             <div className="flex items-center gap-6">
               {navItems.map((item) => (
                 (!item.protected || user) && (
-                  <Link key={item.path} to={item.path} className={`text-sm font-bold flex items-center gap-2 ${isActive(item.path) ? "text-indigo-600" : "text-slate-500"}`}>
+                  <Link key={item.path} to={item.path} className={`text-sm font-bold flex items-center gap-2 ${isActive(item.path) ? "text-emerald-600" : "text-slate-500"}`}>
                     <item.icon size={18} />
                     {item.label}
                   </Link>
@@ -40,7 +40,7 @@ export default function Navbar() {
                   <LogOut size={18} />
                 </button>
               ) : (
-                <Link to="/login" className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-100">Get Started</Link>
+                <Link to="/login" className="px-6 py-2.5 bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-100">Get Started</Link>
               )}
             </div>
           </div>
@@ -90,8 +90,8 @@ export default function Navbar() {
       {/* Mobile Top Branding Bar */}
       <div className="md:hidden sticky top-0 z-50 bg-white/80 backdrop-blur-md px-6 py-4 flex items-center justify-between border-b border-slate-100">
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-xs font-black shadow-md">CF</div>
-          <span className="font-extrabold text-lg tracking-tighter">CommunityFund</span>
+          <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white text-xs font-black shadow-md">GV</div>
+          <span className="font-extrabold text-lg tracking-tighter italic uppercase text-emerald-600">Good Vibes</span>
         </Link>
         {user && (
           <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center overflow-hidden">

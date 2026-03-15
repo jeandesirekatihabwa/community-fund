@@ -113,8 +113,8 @@ export default function Login() {
     return (
         <div className="flex flex-col items-center justify-center min-h-[calc(100dvh-5rem)] mesh-gradient py-8 px-6 relative overflow-hidden font-sans">
             {/* Ambient Background Elements */}
-            <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none animate-pulse"></div>
-            <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/10 rounded-full blur-[100px] pointer-events-none delay-1000 animate-pulse"></div>
+            <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none animate-pulse"></div>
+            <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none delay-1000 animate-pulse"></div>
 
             <main className="w-full max-w-lg relative z-10">
                 <Card className="p-0 glass shadow-[0_32px_128px_-16px_rgba(0,0,0,0.12)] border-white/40 overflow-hidden">
@@ -122,7 +122,7 @@ export default function Login() {
                     <div className="flex h-1.5 w-full bg-slate-100/50">
                         <motion.div 
                             animate={{ width: step === 'identify' ? '33.3%' : step === 'verify' ? '66.6%' : '100dvh' }}
-                            className="h-full bg-indigo-600 transition-all duration-700"
+                            className="h-full bg-emerald-600 transition-all duration-700"
                         />
                     </div>
 
@@ -145,7 +145,7 @@ export default function Login() {
                                             <ChevronLeft size={20} />
                                         </button>
                                     )}
-                                    <div className="w-12 h-12 rounded-2xl bg-indigo-600 shadow-lg shadow-indigo-100 flex items-center justify-center text-white">
+                                    <div className="w-12 h-12 rounded-2xl bg-emerald-600 shadow-lg shadow-emerald-100 flex items-center justify-center text-white">
                                         {step === 'identify' && <Mail size={24} />}
                                         {step === 'verify' && <ShieldCheck size={24} />}
                                         {step === 'onboard' && <User size={24} />}
@@ -157,9 +157,9 @@ export default function Login() {
                                     {step === 'onboard' && "Create your Profile"}
                                 </h1>
                                 <p className="text-slate-500 font-medium mt-2">
-                                    {step === 'identify' && "Join 10M+ contributors making a real impact."}
+                                    {step === 'identify' && "Join the Burundian community in Ireland."}
                                     {step === 'verify' && `We've sent a 6-digit code to ${email}`}
-                                    {step === 'onboard' && "Success! Tell us how we should call you."}
+                                    {step === 'onboard' && "Success! Tell us your name for the community."}
                                 </p>
                             </motion.div>
                         </AnimatePresence>
@@ -188,14 +188,14 @@ export default function Login() {
                                 className="space-y-6"
                             >
                                 <div className="relative group">
-                                    <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-600 transition-colors" size={20} />
+                                    <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-600 transition-colors" size={20} />
                                     <input 
                                         type="email" 
                                         required 
                                         autoFocus
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="w-full pl-14 pr-6 py-5 rounded-[1.5rem] border-slate-100 border-2 bg-slate-50/50 focus:bg-white focus:border-indigo-600 focus:ring-8 focus:ring-indigo-50 outline-none transition-all text-lg font-bold"
+                                        className="w-full pl-14 pr-6 py-5 rounded-[1.5rem] border-slate-100 border-2 bg-slate-50/50 focus:bg-white focus:border-emerald-600 focus:ring-8 focus:ring-emerald-50 outline-none transition-all text-lg font-bold"
                                         placeholder="name@example.com"
                                     />
                                 </div>
@@ -313,7 +313,7 @@ export default function Login() {
 
                 {/* Footer simple navigation or links */}
                 <div className="mt-12 text-center text-slate-400 text-sm font-medium">
-                    <p>© 2026 CommunityFund Infrastructure</p>
+                    <p>© 2026 Good Vibes Solidarity</p>
                     <div className="flex justify-center gap-6 mt-4">
                         <a href="#" className="hover:text-indigo-600 transition-colors">Privacy</a>
                         <a href="#" className="hover:text-indigo-600 transition-colors">Terms</a>
