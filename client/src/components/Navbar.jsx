@@ -84,7 +84,7 @@ export default function Navbar() {
         </div>
         
         {/* Safe Area Buffer */}
-        <div className="h-[env(safe-area-inset-bottom)]"></div>
+        <div style={{ height: 'env(safe-area-inset-bottom)' }}></div>
       </nav>
 
       {/* Mobile Top Branding Bar */}

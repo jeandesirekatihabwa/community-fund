@@ -109,7 +109,7 @@ export default function Login() {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-5rem)] mesh-gradient py-12 px-4 relative overflow-hidden font-sans">
+        <div className="flex flex-col items-center justify-center min-h-[calc(100dvh-5rem)] mesh-gradient py-12 px-4 relative overflow-hidden font-sans">
             {/* Background Orbs */}
             <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none animate-pulse"></div>
             <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500/5 rounded-full blur-[100px] pointer-events-none delay-1000 animate-pulse"></div>
