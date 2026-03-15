@@ -5,15 +5,18 @@ import { useNavigate } from 'react-router-dom';
 import { Card, Button, Spinner } from '../components/ui';
 
 export default function Login() {
-    const { login, loginWithEmail, registerWithEmail } = useAuth();
+    const { login, loginWithEmail, registerWithEmail, verify } = useAuth();
     const navigate = useNavigate();
     
     const [isLoginMode, setIsLoginMode] = useState(true);
+    const [isVerifying, setIsVerifying] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
+    const [verificationCode, setVerificationCode] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const [message, setMessage] = useState('');
 
     const handleGoogleSuccess = async (credentialResponse) => {
         const success = await login(credentialResponse.credential);
@@ -44,11 +47,34 @@ export default function Login() {
 
             if (result.success) {
                 navigate('/dashboard');
+            } else if (result.unverified) {
+                setIsVerifying(true);
+                setEmail(result.email);
+                setMessage("Please enter the 6-digit code sent to your email.");
             } else {
                 setError(result.error);
             }
         } catch (err) {
             setError("An unexpected error occurred.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleVerifySubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setIsLoading(true);
+
+        try {
+            const result = await verify(email, verificationCode);
+            if (result.success) {
+                navigate('/dashboard');
+            } else {
+                setError(result.error);
+            }
+        } catch (err) {
+            setError("Verification failed. Please try again.");
         } finally {
             setIsLoading(false);
         }
@@ -67,9 +93,20 @@ export default function Login() {
                             </svg>
                         </div>
                         <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-                            {isLoginMode ? "Sign in to your account" : "Create a new account"}
+                            {isVerifying ? "Verify your email" : (isLoginMode ? "Sign in to your account" : "Create a new account")}
                         </h2>
+                        {isVerifying && (
+                            <p className="mt-2 text-sm text-slate-500 italic">
+                                We sent a code to {email}
+                            </p>
+                        )}
                     </div>
+
+                    {message && !error && (
+                        <div className="mb-6 rounded-lg bg-indigo-50 p-3 text-sm text-indigo-700 ring-1 ring-inset ring-indigo-500/10 text-center animate-pulse">
+                            {message}
+                        </div>
+                    )}
 
                     {error && (
                         <div className="mb-6 rounded-lg bg-red-50 p-3 text-sm text-red-600 ring-1 ring-inset ring-red-500/10 text-center">
@@ -77,82 +114,121 @@ export default function Login() {
                         </div>
                     )}
 
-                    <form onSubmit={handleManualSubmit} className="space-y-4">
-                        {!isLoginMode && (
+                    {isVerifying ? (
+                        <form onSubmit={handleVerifySubmit} className="space-y-6">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1 text-center">Verification Code</label>
                                 <input 
                                     type="text" 
-                                    required={!isLoginMode}
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    className="w-full rounded-xl border-slate-200 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-4 py-2.5 border outline-none transition-colors"
-                                    placeholder="John Doe"
+                                    required 
+                                    maxLength={6}
+                                    value={verificationCode}
+                                    onChange={(e) => setVerificationCode(e.target.value)}
+                                    className="w-full text-center tracking-[1em] font-mono text-2xl rounded-xl border-slate-200 focus:ring-indigo-500 focus:border-indigo-500 px-4 py-4 border outline-none transition-all shadow-inner bg-slate-50/50"
+                                    placeholder="000000"
                                 />
                             </div>
-                        )}
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Email address</label>
-                            <input 
-                                type="email" 
-                                required 
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full rounded-xl border-slate-200 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-4 py-2.5 border outline-none transition-colors"
-                                placeholder="you@example.com"
+                            <Button 
+                                type="submit"
+                                className="w-full justify-center !rounded-xl !py-4 shadow-lg shadow-indigo-200" 
+                                disabled={isLoading}
+                            >
+                                {isLoading ? <Spinner className="w-5 h-5 text-current" /> : "Verify & Continue"}
+                            </Button>
+                            <div className="text-center">
+                                <button 
+                                    type="button"
+                                    onClick={() => {
+                                        setIsVerifying(false);
+                                        setError('');
+                                        setMessage('');
+                                    }}
+                                    className="text-xs text-slate-400 hover:text-indigo-600 transition-colors"
+                                >
+                                    Didn't get a code? Go back and try again
+                                </button>
+                            </div>
+                        </form>
+                    ) : (
+                        <>
+                        <form onSubmit={handleManualSubmit} className="space-y-4">
+                            {!isLoginMode && (
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                                    <input 
+                                        type="text" 
+                                        required={!isLoginMode}
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        className="w-full rounded-xl border-slate-200 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-4 py-2.5 border outline-none transition-colors"
+                                        placeholder="John Doe"
+                                    />
+                                </div>
+                            )}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Email address</label>
+                                <input 
+                                    type="email" 
+                                    required 
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full rounded-xl border-slate-200 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-4 py-2.5 border outline-none transition-colors"
+                                    placeholder="you@example.com"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                                <input 
+                                    type="password" 
+                                    required 
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full rounded-xl border-slate-200 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-4 py-2.5 border outline-none transition-colors"
+                                    placeholder="••••••••"
+                                />
+                            </div>
+
+                            <Button 
+                                type="submit"
+                                className="w-full justify-center !rounded-xl !py-3" 
+                                disabled={isLoading}
+                            >
+                                {isLoading ? <Spinner className="w-5 h-5 text-current" /> : (isLoginMode ? "Sign In" : "Create Account")}
+                            </Button>
+                        </form>
+
+                        <div className="mt-6 text-center text-sm">
+                            <button 
+                                type="button"
+                                onClick={() => {
+                                    setIsLoginMode(!isLoginMode);
+                                    setError('');
+                                }}
+                                className="text-indigo-600 hover:text-indigo-500 font-medium transition-colors"
+                            >
+                                {isLoginMode ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+                            </button>
+                        </div>
+
+                        <div className="relative my-6 flex items-center">
+                            <div className="flex-grow border-t border-slate-200"></div>
+                            <span className="shrink-0 px-4 text-xs font-semibold text-slate-400 uppercase tracking-widest">or</span>
+                            <div className="flex-grow border-t border-slate-200"></div>
+                        </div>
+
+                        <div className="flex justify-center p-3 bg-slate-50 rounded-xl border border-slate-200/60 shadow-inner">
+                            <GoogleLogin
+                                onSuccess={handleGoogleSuccess}
+                                onError={() => setError('Google Login Failed')}
+                                useOneTap={false}
+                                theme="outline"
+                                size="large"
+                                shape="rectangular"
+                                text="continue_with"
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-                            <input 
-                                type="password" 
-                                required 
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full rounded-xl border-slate-200 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm px-4 py-2.5 border outline-none transition-colors"
-                                placeholder="••••••••"
-                            />
-                        </div>
-
-                        <Button 
-                            type="submit"
-                            className="w-full justify-center !rounded-xl !py-3" 
-                            disabled={isLoading}
-                        >
-                            {isLoading ? <Spinner className="w-5 h-5 text-current" /> : (isLoginMode ? "Sign In" : "Create Account")}
-                        </Button>
-                    </form>
-
-                    <div className="mt-6 text-center text-sm">
-                        <button 
-                            type="button"
-                            onClick={() => {
-                                setIsLoginMode(!isLoginMode);
-                                setError('');
-                            }}
-                            className="text-indigo-600 hover:text-indigo-500 font-medium transition-colors"
-                        >
-                            {isLoginMode ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
-                        </button>
-                    </div>
-
-                    <div className="relative my-6 flex items-center">
-                        <div className="flex-grow border-t border-slate-200"></div>
-                        <span className="shrink-0 px-4 text-xs font-semibold text-slate-400 uppercase tracking-widest">or</span>
-                        <div className="flex-grow border-t border-slate-200"></div>
-                    </div>
-
-                    <div className="flex justify-center p-3 bg-slate-50 rounded-xl border border-slate-200/60 shadow-inner">
-                        <GoogleLogin
-                            onSuccess={handleGoogleSuccess}
-                            onError={() => setError('Google Login Failed')}
-                            useOneTap={false}
-                            theme="outline"
-                            size="large"
-                            shape="rectangular"
-                            text="continue_with"
-                        />
-                    </div>
+                        </>
+                    )}
                     
                     <p className="px-6 text-center text-[11px] text-slate-400 mt-6 leading-relaxed">
                         By continuing, you verify that you agree to our Terms of Service and Privacy Policy.

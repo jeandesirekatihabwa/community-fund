@@ -19,12 +19,15 @@ model contributions {
 }
 
 model users {
-  id            Int             @id @default(autoincrement())
-  google_id     String?         @unique
-  email         String?
-  name          String?
-  avatar        String?
-  created_at    DateTime?       @default(now())
-  password      String?
-  contributions contributions[]
+  id                   Int             @id @default(autoincrement())
+  google_id            String?         @unique
+  email                String?         @unique
+  name                 String?
+  avatar               String?
+  password             String?
+  is_verified          Boolean         @default(false)
+  verification_code    String?
+  verification_expires DateTime?
+  created_at           DateTime?       @default(now())
+  contributions        contributions[]
 }

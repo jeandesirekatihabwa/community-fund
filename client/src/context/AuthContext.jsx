@@ -117,6 +117,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Email verification
+  const verify = async (email, code) => {
+    try {
+      const res = await api.post("/auth/verify", { email, code });
+      const { user, token } = res.data;
+      saveAuth(user, token);
+      return { success: true };
+    } catch (error) {
+      console.error("Verification failed:", error);
+      return {
+        success: false,
+        error: error.message || "Invalid or expired code",
+      };
+    }
+  };
+
   // Logout
   const logout = () => {
     try {
@@ -138,6 +154,7 @@ export const AuthProvider = ({ children }) => {
         login,
         loginWithEmail,
         registerWithEmail,
+        verify,
         logout,
       }}
     >
