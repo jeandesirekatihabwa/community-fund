@@ -154,7 +154,7 @@ export default function Home() {
                                                     appearance: { theme: 'stripe', variables: { colorPrimary: '#4f46e5' } }
                                                 }}>
                                                     <ImpactPaymentSystem 
-                                                        amount={500} 
+                                                        amount={customAmount * 100} 
                                                         onSuccess={() => navigate('/dashboard')} 
                                                     />
                                                 </Elements>
