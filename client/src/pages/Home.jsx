@@ -16,6 +16,7 @@ export default function Home() {
     const [paymentError, setPaymentError] = useState(null);
     const [isStartingPayment, setIsStartingPayment] = useState(false);
     const [showPayment, setShowPayment] = useState(false);
+    const [customAmount, setCustomAmount] = useState(5); // Default to 5
     
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -47,7 +48,7 @@ export default function Home() {
         setPaymentError(null);
         try {
             const { data } = await api.post("/api/payment/session", {
-                amount: 500,
+                amount: customAmount * 100, // Convert to cents
                 currency: "eur"
             });
             setClientSecret(data.clientSecret);
@@ -175,10 +176,25 @@ export default function Home() {
                                                     </div>
                                                 )}
 
+                                                <div className="w-full space-y-4">
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Select Contribution Amount</p>
+                                                    <div className="flex gap-3">
+                                                        {[1, 5, 10, 20].map((amt) => (
+                                                            <button
+                                                                key={amt}
+                                                                onClick={() => setCustomAmount(amt)}
+                                                                className={`flex-1 py-3 rounded-xl font-black text-sm transition-all border ${customAmount === amt ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-100' : 'bg-slate-50 text-slate-400 border-slate-100 hover:border-indigo-200'}`}
+                                                            >
+                                                                €{amt}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
                                                 <div className="w-full rounded-[2.5rem] bg-slate-900 p-10 text-center text-white shadow-2xl relative overflow-hidden group">
                                                     <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                                    <span className="block text-7xl font-black tracking-tighter mb-2 italic">€5.00</span>
-                                                    <span className="text-indigo-300 text-[10px] font-black uppercase tracking-[0.3em]">Direct Weekly Contribution</span>
+                                                    <span className="block text-7xl font-black tracking-tighter mb-2 italic">€{customAmount.toFixed(2)}</span>
+                                                    <span className="text-indigo-300 text-[10px] font-black uppercase tracking-[0.3em]">Direct Contribution</span>
                                                 </div>
                                                 
                                                 <motion.button
@@ -192,7 +208,7 @@ export default function Home() {
                                                         <Spinner className="w-6 h-6" />
                                                     ) : (
                                                         <>
-                                                            {user ? "Initialize Instant Payment" : "Join & Contribute"}
+                                                            {user ? "Initialize €" + customAmount + " Payment" : "Join & Contribute"}
                                                             <ArrowRight className="h-6 w-6 transition-transform group-hover:translate-x-1" />
                                                         </>
                                                     )}
