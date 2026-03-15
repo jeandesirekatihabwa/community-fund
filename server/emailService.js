@@ -10,20 +10,26 @@ const transporter = nodemailer.createTransport({
 
 const sendVerificationEmail = async (email, code) => {
     const mailOptions = {
-        from: `"Community Fund" <${process.env.EMAIL_USER}>`,
+        from: `"Community Fund Support" <${process.env.EMAIL_USER}>`,
         to: email,
-        subject: 'Verify your Community Fund Account',
+        subject: `${code} is your Community Fund verification code`,
         html: `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e1e1e1; border-radius: 10px;">
-                <h2 style="color: #4f46e5; text-align: center;">Welcome to Community Fund!</h2>
-                <p>Thank you for signing up. Please use the verification code below to confirm your account:</p>
-                <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
-                    <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1f2937;">${code}</span>
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 500px; margin: 40px auto; padding: 40px; border-radius: 24px; background-color: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #f0f0f0;">
+                <div style="text-align: center; margin-bottom: 32px;">
+                    <div style="display: inline-block; width: 48px; height: 48px; background: #4f46e5; border-radius: 12px; color: #ffffff; font-size: 24px; font-weight: 900; line-height: 48px; text-align: center;">C</div>
                 </div>
-                <p>This code will expire in 1 hour.</p>
-                <p style="font-size: 12px; color: #6b7280; margin-top: 40px; text-align: center;">
-                    If you didn't create an account, you can safely ignore this email.
-                </p>
+                <h1 style="color: #1a1a1a; font-size: 24px; font-weight: 800; text-align: center; margin-bottom: 8px; letter-spacing: -0.02em;">Verify your account</h1>
+                <p style="color: #666666; font-size: 15px; line-height: 24px; text-align: center; margin-bottom: 32px;">To complete your secure setup and join the community, please enter the following 6-digit code.</p>
+                
+                <div style="background-color: #f8fafc; padding: 32px; border-radius: 20px; text-align: center; border: 1px solid #e2e8f0; margin-bottom: 32px;">
+                    <span style="font-family: 'SF Mono', 'Fira Code', monospace; font-size: 40px; font-weight: 800; letter-spacing: 8px; color: #1e293b;">${code}</span>
+                </div>
+                
+                <p style="color: #94a3b8; font-size: 13px; line-height: 20px; text-align: center; margin-bottom: 0;">This security code will expire in 10 minutes. If you did not request this, please ignore this email.</p>
+                
+                <div style="margin-top: 40px; padding-top: 32px; border-top: 1px solid #f0f0f0; text-align: center;">
+                    <p style="color: #cbd5e1; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin: 0;">Secure Infrastructure &bull; 256-bit AES</p>
+                </div>
             </div>
         `,
     };

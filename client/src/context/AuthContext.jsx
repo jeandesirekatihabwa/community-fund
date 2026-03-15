@@ -141,6 +141,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Resend code
+  const resendCode = async (email) => {
+    try {
+      const res = await api.post("/auth/resend-code", { email });
+      return { success: true, message: res.data.message };
+    } catch (error) {
+      console.error("Resend code failed:", error);
+      return {
+        success: false,
+        error: error.message || "Failed to resend code",
+      };
+    }
+  };
+
   // Logout
   const logout = () => {
     try {
@@ -163,6 +177,7 @@ export const AuthProvider = ({ children }) => {
         loginWithEmail,
         registerWithEmail,
         verify,
+        resendCode,
         logout,
       }}
     >

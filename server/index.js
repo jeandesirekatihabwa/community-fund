@@ -216,7 +216,7 @@ app.post('/auth/register', authLimiter, async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const verification_code = generateCode();
-        const verification_expires = new Date(Date.now() + 3600000); // 1 hour
+        const verification_expires = new Date(Date.now() + 600000); // 10 minutes
 
         const user = await prisma.users.create({
             data: { 
@@ -297,6 +297,39 @@ app.post('/auth/verify', authLimiter, async (req, res) => {
     } catch (error) {
         console.error("Verification error:", error);
         res.status(500).json({ error: 'Verification failed' });
+    }
+});
+
+// Resend Verification Code
+app.post('/auth/resend-code', authLimiter, async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required' });
+
+    try {
+        const user = await prisma.users.findFirst({
+            where: { email }
+        });
+
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (user.is_verified) return res.status(400).json({ error: 'Account already verified' });
+
+        const verification_code = generateCode();
+        const verification_expires = new Date(Date.now() + 600000); // 10 minutes
+
+        await prisma.users.update({
+            where: { id: user.id },
+            data: { 
+                verification_code,
+                verification_expires
+            }
+        });
+
+        await sendVerificationEmail(email, verification_code);
+
+        res.json({ message: 'A fresh verification code has been sent to your email.' });
+    } catch (error) {
+        console.error("Resend code error:", error);
+        res.status(500).json({ error: 'Failed to resend code' });
     }
 });
 

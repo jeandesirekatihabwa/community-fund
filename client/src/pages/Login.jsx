@@ -4,10 +4,10 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button, Spinner } from '../components/ui';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, User, ShieldCheck, ArrowRight, Github, Chrome, Shield } from 'lucide-react';
+import { Mail, Lock, User, ShieldCheck, ArrowRight, Shield } from 'lucide-react';
 
 export default function Login() {
-    const { login, loginWithEmail, registerWithEmail, verify } = useAuth();
+    const { login, loginWithEmail, registerWithEmail, verify, resendCode } = useAuth();
     const navigate = useNavigate();
     
     const [isLoginMode, setIsLoginMode] = useState(true);
@@ -19,6 +19,15 @@ export default function Login() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
+    const [resendCooldown, setResendCooldown] = useState(0);
+
+    useEffect(() => {
+        let timer;
+        if (resendCooldown > 0) {
+            timer = setInterval(() => setResendCooldown(c => c - 1), 1000);
+        }
+        return () => clearInterval(timer);
+    }, [resendCooldown]);
 
     const handleGoogleSuccess = async (credentialResponse) => {
         setIsLoading(true);
@@ -60,7 +69,7 @@ export default function Login() {
                 setError(result.error);
             }
         } catch (err) {
-            setError("High traffic detected. Please try again in a moment.");
+            setError("Connectivity issue detected. Please try again.");
         } finally {
             setIsLoading(false);
         }
@@ -85,18 +94,31 @@ export default function Login() {
         }
     };
 
-    return (
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] mesh-gradient py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-            {/* Background Decorations */}
-            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none animate-pulse"></div>
-            <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-purple-500/10 rounded-full blur-[100px] pointer-events-none delay-1000 animate-pulse"></div>
+    const handleResendCode = async () => {
+        if (resendCooldown > 0) return;
+        setIsLoading(true);
+        setError('');
+        const result = await resendCode(email);
+        if (result.success) {
+            setMessage(result.message);
+            setResendCooldown(60);
+        } else {
+            setError(result.error);
+        }
+        setIsLoading(false);
+    };
 
-            <main className="w-full max-w-lg relative z-10 auth-transition-container">
+    return (
+        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-5rem)] mesh-gradient py-12 px-4 relative overflow-hidden font-sans">
+            {/* Background Orbs */}
+            <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none animate-pulse"></div>
+            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500/5 rounded-full blur-[100px] pointer-events-none delay-1000 animate-pulse"></div>
+
+            <main className="w-full max-w-lg relative z-10">
                 <motion.div 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, ease: "easeOut" }}
-                    className="premium-card p-10 glass shadow-2xl overflow-hidden border border-white/40"
+                    className="premium-card p-10 glass shadow-2xl overflow-hidden border border-white/40 backdrop-blur-3xl"
                 >
                     {/* Header Section */}
                     <AnimatePresence mode="wait">
@@ -107,26 +129,27 @@ export default function Login() {
                             exit={{ opacity: 0, x: 10 }}
                             className="text-center mb-10"
                         >
-                            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600 shadow-indigo-200 shadow-xl text-white mb-6 floating-animation">
+                            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600 shadow-xl text-white mb-6 floating-animation">
                                 {isVerifying ? <ShieldCheck size={32} /> : <Lock size={32} />}
                             </div>
-                            <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 mb-2">
-                                {isVerifying ? "Secure Verification" : (isLoginMode ? "Welcome Back" : "Scale the Community")}
+                            <h2 className="text-3xl font-black tracking-tight text-slate-900 mb-2">
+                                {isVerifying ? "Secure Access" : (isLoginMode ? "Welcome Back" : "Join the Movement")}
                             </h2>
-                            <p className="text-slate-500 font-medium">
-                                {isVerifying ? "Enter the 6-digit access code sent to your email" : 
-                                (isLoginMode ? "Sign in to access your dashboard" : "Join 10M+ contributors worldwide")}
+                            <p className="text-slate-500 font-medium px-4">
+                                {isVerifying ? `Verification code dispatched to ${email}` : 
+                                (isLoginMode ? "Sign in to access your dashboard" : "Join over 10M contributors worldwide")}
                             </p>
                         </motion.div>
                     </AnimatePresence>
 
-                    {/* Feedback Messages */}
+                    {/* Feedback */}
                     <AnimatePresence>
                         {message && !error && (
                             <motion.div 
                                 initial={{ height: 0, opacity: 0 }}
                                 animate={{ height: 'auto', opacity: 1 }}
-                                className="mb-6 rounded-xl bg-indigo-50/80 p-4 text-sm text-indigo-700 border border-indigo-100 flex items-center gap-3"
+                                exit={{ height: 0, opacity: 0 }}
+                                className="mb-6 rounded-xl bg-indigo-50/80 p-4 text-xs font-bold text-indigo-700 border border-indigo-100 flex items-center gap-3"
                             >
                                 <span className="shimmer w-2 h-2 rounded-full bg-indigo-400"></span>
                                 {message}
@@ -136,7 +159,8 @@ export default function Login() {
                             <motion.div 
                                 initial={{ height: 0, opacity: 0 }}
                                 animate={{ height: 'auto', opacity: 1 }}
-                                className="mb-6 rounded-xl bg-red-50/80 p-4 text-sm text-red-600 border border-red-100 flex items-start gap-3"
+                                exit={{ height: 0, opacity: 0 }}
+                                className="mb-6 rounded-xl bg-red-50/80 p-4 text-xs font-bold text-red-600 border border-red-100 flex items-start gap-3"
                             >
                                 <Shield className="shrink-0 w-4 h-4 mt-0.5" />
                                 {error}
@@ -146,69 +170,76 @@ export default function Login() {
 
                     {isVerifying ? (
                         <motion.form 
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
                             onSubmit={handleVerifySubmit} 
                             className="space-y-8"
                         >
-                            <div className="relative">
-                                <input 
-                                    type="text" 
-                                    required 
-                                    maxLength={6}
-                                    value={verificationCode}
-                                    onChange={(e) => setVerificationCode(e.target.value)}
-                                    className="w-full text-center tracking-[0.8em] font-bold text-3xl rounded-2xl border-slate-200 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 px-6 py-6 border-2 outline-none transition-all shadow-inner bg-slate-50/50"
-                                    placeholder="••••••"
-                                />
+                            <div className="flex flex-col items-center gap-6">
+                                <div className="relative w-full">
+                                    <input 
+                                        type="text" 
+                                        required 
+                                        maxLength={6}
+                                        autoFocus
+                                        value={verificationCode}
+                                        onChange={(e) => setVerificationCode(e.target.value.replace(/[^0-9]/g, ''))}
+                                        className="w-full text-center tracking-[0.5em] font-black text-4xl rounded-3xl border-slate-200 focus:ring-8 focus:ring-indigo-50 px-4 py-8 border-2 outline-none transition-all shadow-xl bg-white"
+                                        placeholder="000000"
+                                    />
+                                </div>
+
+                                <div className="flex items-center justify-center gap-2">
+                                    <p className="text-sm font-bold text-slate-400">Missing code?</p>
+                                    <button 
+                                        type="button"
+                                        onClick={handleResendCode}
+                                        disabled={resendCooldown > 0 || isLoading}
+                                        className={`text-sm font-black transition-all ${resendCooldown > 0 ? 'text-slate-300' : 'text-indigo-600 hover:text-indigo-700'}`}
+                                    >
+                                        {resendCooldown > 0 ? `Wait ${resendCooldown}s` : "Resend Now"}
+                                    </button>
+                                </div>
                             </div>
+
                             <Button 
                                 type="submit"
-                                className="w-full !rounded-2xl !py-5 text-lg font-bold shadow-2xl shadow-indigo-200 transition-transform active:scale-95 group" 
-                                disabled={isLoading}
+                                className="w-full !rounded-[2rem] !py-6 text-xl font-black shadow-2xl transition-all active:scale-[0.98]" 
+                                disabled={isLoading || verificationCode.length !== 6}
                             >
-                                {isLoading ? <Spinner className="w-6 h-6" /> : (
-                                    <>
-                                        Verify Identity
-                                        <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={20} />
-                                    </>
-                                )}
+                                {isLoading ? <Spinner className="w-6 h-6" /> : "Verify Identity"}
                             </Button>
+
                             <div className="text-center">
                                 <button 
                                     type="button"
-                                    onClick={() => {
-                                        setIsVerifying(false);
-                                        setError('');
-                                        setMessage('');
-                                    }}
-                                    className="text-sm font-semibold text-slate-400 hover:text-indigo-600 transition-colors"
+                                    onClick={() => setIsVerifying(false)}
+                                    className="text-[10px] font-black text-slate-400 hover:text-indigo-600 uppercase tracking-widest transition-colors"
                                 >
-                                    Didn't get a code? Go back and try again
+                                    Cancel & Restart
                                 </button>
                             </div>
                         </motion.form>
                     ) : (
                         <div className="space-y-6">
-                            <form onSubmit={handleManualSubmit} className="space-y-5">
+                            <form onSubmit={handleManualSubmit} className="space-y-4">
                                 <AnimatePresence mode="popLayout">
                                     {!isLoginMode && (
                                         <motion.div
-                                            initial={{ opacity: 0, y: -10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: -10 }}
+                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.95 }}
+                                            className="relative group"
                                         >
-                                            <div className="relative group">
-                                                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={20} />
-                                                <input 
-                                                    type="text" 
-                                                    required={!isLoginMode}
-                                                    value={name}
-                                                    onChange={(e) => setName(e.target.value)}
-                                                    className="w-full pl-12 pr-4 py-4 rounded-2xl border-slate-200 border-2 focus:ring-4 focus:ring-indigo-50/50 focus:border-indigo-500 outline-none"
-                                                    placeholder="Global Identity (Name)"
-                                                />
-                                            </div>
+                                            <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={20} />
+                                            <input 
+                                                type="text" 
+                                                required={!isLoginMode}
+                                                value={name}
+                                                onChange={(e) => setName(e.target.value)}
+                                                className="w-full pl-12 pr-4 py-4 rounded-2xl border-slate-200 border-2 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
+                                                placeholder="Global Identity Name"
+                                            />
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
@@ -220,8 +251,8 @@ export default function Login() {
                                         required 
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="w-full pl-12 pr-4 py-4 rounded-2xl border-slate-200 border-2 focus:ring-4 focus:ring-indigo-50/50 focus:border-indigo-500 outline-none"
-                                        placeholder="Secure Business Email"
+                                        className="w-full pl-12 pr-4 py-4 rounded-2xl border-slate-200 border-2 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
+                                        placeholder="Business Email Address"
                                     />
                                 </div>
 
@@ -232,85 +263,58 @@ export default function Login() {
                                         required 
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full pl-12 pr-4 py-4 rounded-2xl border-slate-200 border-2 focus:ring-4 focus:ring-indigo-50/50 focus:border-indigo-500 outline-none"
-                                        placeholder="Master Encryption Key"
+                                        className="w-full pl-12 pr-4 py-4 rounded-2xl border-slate-200 border-2 focus:ring-4 focus:ring-indigo-50 outline-none transition-all"
+                                        placeholder="Secure Access Key"
                                     />
                                 </div>
 
                                 <Button 
                                     type="submit"
-                                    className="w-full !rounded-2xl !py-5 text-lg font-bold shadow-2xl shadow-indigo-100 transition-all hover:shadow-indigo-200 active:scale-95" 
+                                    className="w-full !rounded-2xl !py-5 text-lg font-black shadow-xl" 
                                     disabled={isLoading}
                                 >
-                                    {isLoading ? <Spinner className="w-6 h-6" /> : (isLoginMode ? "Secure Authorization" : "Provision New Account")}
+                                    {isLoading ? <Spinner className="w-6 h-6" /> : (isLoginMode ? "Authorize" : "Create Account")}
                                 </Button>
                             </form>
 
-                            <div className="flex items-center gap-4 py-2">
-                                <div className="h-px flex-1 bg-slate-200"></div>
-                                <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">Global Auth Bridge</span>
-                                <div className="h-px flex-1 bg-slate-200"></div>
+                            <div className="flex items-center gap-4">
+                                <div className="h-px flex-1 bg-slate-100"></div>
+                                <span className="text-slate-300 font-black text-[10px] uppercase tracking-widest leading-none">Social Link</span>
+                                <div className="h-px flex-1 bg-slate-100"></div>
                             </div>
 
-                            <div className="grid grid-cols-1 gap-4">
-                                <div className="flex justify-center p-1 bg-white rounded-2xl border-2 border-slate-100 hover:border-indigo-200 shadow-sm transition-all overflow-hidden relative">
-                                    <GoogleLogin
-                                        onSuccess={handleGoogleSuccess}
-                                        onError={() => setError('Google secure bridge failed.')}
-                                        useOneTap={false}
-                                        theme="outline"
-                                        size="large"
-                                        shape="pill"
-                                        text="continue_with"
-                                        width="100%"
-                                    />
-                                </div>
+                            <div className="flex justify-center p-1 bg-white rounded-2xl border-2 border-slate-100 hover:border-indigo-200 transition-all">
+                                <GoogleLogin
+                                    onSuccess={handleGoogleSuccess}
+                                    onError={() => setError('Bridge failed.')}
+                                    theme="outline"
+                                    size="large"
+                                    shape="pill"
+                                    text="continue_with"
+                                    width="100%"
+                                />
                             </div>
 
                             <div className="text-center">
                                 <button 
                                     type="button"
-                                    onClick={() => {
-                                        setIsLoginMode(!isLoginMode);
-                                        setError('');
-                                        setMessage('');
-                                    }}
-                                    className="text-slate-600 hover:text-indigo-600 font-bold transition-all text-sm decoration-indigo-200 decoration-2 underline-offset-4 hover:underline"
+                                    onClick={() => setIsLoginMode(!isLoginMode)}
+                                    className="text-slate-500 hover:text-indigo-600 font-bold text-sm transition-all"
                                 >
-                                    {isLoginMode ? "New here? Create global identity" : "Existing verified user? Sign in"}
+                                    {isLoginMode ? "New here? Establish Access" : "Existing Node? Sign In"}
                                 </button>
                             </div>
                         </div>
                     )}
                     
-                    <div className="mt-10 pt-6 border-t border-slate-100 flex flex-col items-center gap-4">
-                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
-                            <Shield size={12} className="text-indigo-400" />
-                            Industry Standard 256-bit Encryption
+                    <div className="mt-10 pt-6 border-t border-slate-50 flex flex-col items-center gap-4">
+                        <div className="flex items-center gap-2 text-[10px] font-black text-slate-300 uppercase tracking-tighter">
+                            <Shield size={12} className="text-indigo-300" />
+                            Industry Standard Encryption Active
                         </div>
-                        <p className="px-6 text-center text-[10px] text-slate-400 leading-relaxed font-semibold">
-                            By authenticating, you acknowledge our commitment to global security standards, 
-                            <span className="text-slate-600 px-1 hover:text-indigo-600 cursor-pointer">Terms of Operation</span> and 
-                            <span className="text-slate-600 px-1 hover:text-indigo-600 cursor-pointer">Data Privacy Governance</span>.
-                        </p>
                     </div>
                 </motion.div>
             </main>
-
-            {/* Scale Footer Hint */}
-            <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1 }}
-                className="mt-12 text-slate-400 flex items-center gap-3 font-bold text-xs"
-            >
-                <div className="flex -space-x-2">
-                    {[1,2,3,4].map(i => (
-                        <div key={i} className={`w-6 h-6 rounded-full border-2 border-white bg-slate-${200 + i*100} shimmer`}></div>
-                    ))}
-                </div>
-                Trusted by 10M+ community members
-            </motion.div>
         </div>
     );
 }
