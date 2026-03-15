@@ -36,22 +36,23 @@ export default function ImpactPaymentSystem({ amount = 500, onSuccess }) {
         });
 
         // 🛡️ Robust Browser Detection
-        const isInApp = /Instagram|FBAN|FBAV|LinkedInApp/i.test(navigator.userAgent);
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        const isInApp = /Instagram|FBAN|FBAV|LinkedInApp|Linktree/i.test(userAgent);
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(userAgent);
         
         pr.canMakePayment().then((result) => {
-            console.log("[Payment Handshake] Browser Payment Support:", result);
+            console.log("[Payment Handshake] Support:", result);
             if (result) {
                 setPaymentRequest(pr);
                 setStatus('wallet_ready');
                 setActiveTab('wallet');
             } else {
+                // If on mobile and no wallet, it's either an In-App browser or no card saved
                 setStatus(isInApp ? 'in_app_browser' : 'card_only');
                 setActiveTab('card');
             }
         }).catch(err => {
-            console.error("[Payment Handshake] Detection Error:", err);
             setStatus(isInApp ? 'in_app_browser' : 'card_only');
-            setActiveTab('card');
         });
 
         // Handle the native wallet confirmation
@@ -213,13 +214,28 @@ export default function ImpactPaymentSystem({ amount = 500, onSuccess }) {
 
                         {status === 'in_app_browser' && (
                             <motion.div 
-                                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                                className="p-4 rounded-2xl bg-amber-50 border border-amber-100 text-amber-700 text-[10px] font-black uppercase text-center tracking-widest leading-relaxed mb-4"
+                                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                                className="p-8 rounded-[2.5rem] bg-indigo-900 text-white text-center shadow-2xl space-y-6"
                             >
-                                <AlertCircle size={14} className="mx-auto mb-2" />
-                                In-App Browser Detected. <br />
-                                Google Pay requires the full **Chrome App**. <br />
-                                Please copy this link and open in Chrome.
+                                <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto">
+                                    <Globe className="animate-spin-slow" />
+                                </div>
+                                <div className="space-y-2">
+                                    <h4 className="text-xl font-black italic">Security Barrier</h4>
+                                    <p className="text-[10px] font-bold text-indigo-200 uppercase tracking-widest leading-relaxed">
+                                        Your current app blocks Google Pay. <br />
+                                        Please open this link in the **Chrome App**.
+                                    </p>
+                                </div>
+                                <button 
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(window.location.href);
+                                        alert("Link Copied! Now open Chrome and paste it.");
+                                    }}
+                                    className="w-full py-4 bg-white text-indigo-900 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-50 transition-colors"
+                                >
+                                    Copy Website Link
+                                </button>
                             </motion.div>
                         )}
 
