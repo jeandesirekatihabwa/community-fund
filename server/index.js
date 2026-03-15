@@ -8,8 +8,12 @@ const prisma = new PrismaClient();
 const http = require('http');
 const { Server } = require('socket.io');
 
+const frontendUrl = process.env.FRONTEND_URL;
 const allowedOrigins = [
-    process.env.FRONTEND_URL,
+    frontendUrl,
+    frontendUrl ? `https://${frontendUrl}` : null,
+    frontendUrl ? `http://${frontendUrl}` : null,
+    'https://community-fund-client.onrender.com',
     'http://localhost:5173',
     'http://localhost:5174'
 ].filter(Boolean);
