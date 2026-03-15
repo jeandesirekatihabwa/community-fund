@@ -1,126 +1,159 @@
-import GooglePayButton from '@google-pay/button-react';
 import { useState, useEffect } from "react";
-import { useStripe } from "@stripe/react-stripe-js";
+import { PaymentRequestButtonElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { Spinner } from "./ui";
 import api from "../lib/api";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { ShieldCheck, Zap } from "lucide-react";
 
-export default function ProfessionalGooglePay({ amount = 500, currency = "EUR" }) {
+export default function ProfessionalGooglePay({ amount = 500, currency = "eur" }) {
     const stripe = useStripe();
-    const [publishableKey, setPublishableKey] = useState("");
-    const [isFinishing, setIsFinishing] = useState(false);
-    const [isReady, setIsReady] = useState(false);
+    const elements = useElements();
+    const [paymentRequest, setPaymentRequest] = useState(null);
+    const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        const fetchKey = async () => {
-            try {
-                const { data } = await api.get("/config");
-                setPublishableKey(data.publishableKey);
-                // Artificial delay for smooth mobile UI transition
-                setTimeout(() => setIsReady(true), 800);
-            } catch (err) {
-                console.error("Config fetch failed", err);
-                setError("Infrastructure link failed");
-            }
-        };
-        fetchKey();
-    }, []);
+        if (!stripe || !elements) return;
 
-    if (!isReady) {
-        return (
-            <div className="flex flex-col items-center justify-center p-12 gap-4">
-                <Spinner className="w-10 h-10" />
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">
-                    Waking Wallet Infrastructure...
-                </p>
-            </div>
-        );
-    }
+        const pr = stripe.paymentRequest({
+            country: 'US',
+            currency: currency.toLowerCase(),
+            total: {
+                label: 'Community Support Contribution',
+                amount: amount,
+            },
+            requestPayerName: true,
+            requestPayerEmail: true,
+        });
+
+        // Check the availability of the Payment Request API (Google Pay/Apple Pay)
+        pr.canMakePayment().then((result) => {
+            if (result) {
+                setPaymentRequest(pr);
+            } else {
+                console.warn("Google Pay/Wallet not available on this device/browser.");
+            }
+        });
+
+        pr.on('paymentmethod', async (ev) => {
+            setIsProcessing(true);
+            try {
+                // 1. Create PaymentIntent on server
+                const { data: { clientSecret } } = await api.post("/create-payment-intent", {
+                    amount,
+                    currency,
+                });
+
+                // 2. Confirm the PaymentIntent with the payment method from Google Pay
+                const { error: confirmError } = await stripe.confirmCardPayment(
+                    clientSecret,
+                    { payment_method: ev.paymentMethod.id },
+                    { handleActions: false }
+                );
+
+                if (confirmError) {
+                    ev.complete('fail');
+                    setError(confirmError.message);
+                } else {
+                    ev.complete('success');
+                    // Success! Redirect to completion
+                    window.location.href = `/completion?payment_intent_client_secret=${clientSecret}&redirect_status=succeeded`;
+                }
+            } catch (err) {
+                ev.complete('fail');
+                setError("Financial bridge connection failed.");
+            } finally {
+                setIsProcessing(false);
+            }
+        });
+    }, [stripe, elements, amount, currency]);
 
     return (
-        <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center justify-center w-full gap-6"
-        >
-            <div className="w-full bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-2xl relative overflow-hidden group">
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+        <div className="w-full flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-6 duration-1000">
+            {/* High-End Price Card */}
+            <div className="w-full bg-slate-950 rounded-[2.5rem] p-10 text-white shadow-2xl relative overflow-hidden group border border-white/5">
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 via-transparent to-purple-500/10 opacity-50"></div>
+                <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-[80px]"></div>
+                
                 <div className="relative z-10 text-center">
-                    <p className="text-indigo-400 text-[10px] font-black uppercase tracking-[0.3em] mb-4">Secured Ecosystem</p>
-                    <h3 className="text-6xl font-black tracking-tighter mb-2">€{ (amount / 100).toFixed(2) }</h3>
-                    <p className="text-slate-400 text-sm font-medium">One-tap micro-contribution</p>
+                    <div className="flex justify-center mb-4">
+                        <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-[0.3em] text-indigo-300">
+                            Verified Impact Infrastructure
+                        </div>
+                    </div>
+                    <h3 className="text-7xl font-black tracking-tighter mb-2 italic">
+                        €{ (amount / 100).toFixed(2) }
+                    </h3>
+                    <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Weekly Community Fuel</p>
                 </div>
             </div>
 
-            <div className="w-full max-w-sm rounded-[1.5rem] overflow-hidden">
-                {publishableKey && (
-                    <GooglePayButton
-                        environment="TEST"
-                        buttonColor="black"
-                        buttonType="donate"
-                        buttonSizeMode="fill"
-                        className="h-16 w-full"
-                        paymentRequest={{
-                            apiVersion: 2,
-                            apiVersionMinor: 0,
-                            allowedPaymentMethods: [
-                                {
-                                    type: 'CARD',
-                                    parameters: {
-                                        allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
-                                        allowedCardNetworks: ['MASTERCARD', 'VISA'],
-                                    },
-                                    tokenizationSpecification: {
-                                        type: 'PAYMENT_GATEWAY',
-                                        parameters: {
-                                            gateway: 'stripe',
-                                            'stripe:publishableKey': publishableKey,
-                                            'stripe:version': '2020-08-27',
-                                        },
-                                    },
-                                },
-                            ],
-                            merchantInfo: {
-                                merchantId: '12345678901234567890',
-                                merchantName: 'Community Fund Global',
-                            },
-                            transactionInfo: {
-                                totalPriceStatus: 'FINAL',
-                                totalPriceLabel: 'Total',
-                                totalPrice: (amount / 100).toString(),
-                                currencyCode: currency,
-                                countryCode: 'FR', // Set to target region
-                            },
-                        }}
-                        onLoadPaymentData={async (paymentData) => {
-                            console.log('Google Pay Success', paymentData);
-                            window.location.href = `/completion?payment_intent_client_secret=demo_success&redirect_status=succeeded`;
-                        }}
-                        onError={(err) => {
-                            console.error("GPay Error:", err);
-                            setError("Mobile wallet inactive. Ensure a card is saved in Chrome.");
-                        }}
-                    />
-                )}
+            {/* The Professional Wallet Button */}
+            <div className="px-2">
+                <AnimatePresence mode="wait">
+                    {paymentRequest ? (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="space-y-6"
+                        >
+                            <div className="relative group">
+                                <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-[1.5rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                                <div className="relative bg-white rounded-[1.4rem] overflow-hidden">
+                                    <PaymentRequestButtonElement 
+                                        options={{ 
+                                            paymentRequest,
+                                            style: {
+                                                paymentRequestButton: {
+                                                    type: 'donate',
+                                                    theme: 'dark',
+                                                    height: '64px',
+                                                },
+                                            }
+                                        }} 
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="flex flex-col items-center gap-2 opacity-40">
+                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                    <ShieldCheck size={12} className="text-indigo-400" />
+                                    Native Device Security Handshake
+                                </div>
+                            </div>
+                        </motion.div>
+                    ) : (
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }}
+                            className="p-8 rounded-[2rem] bg-amber-50 border border-amber-100 text-center space-y-3"
+                        >
+                            <Zap size={24} className="mx-auto text-amber-500" />
+                            <p className="text-sm font-bold text-amber-900">Chrome Wallet Not Detected</p>
+                            <p className="text-[10px] text-amber-700 font-medium leading-relaxed">
+                                To use the 1-Tap Google Pay experience, please ensure you are in **Chrome** and have a card saved in your Google Account.
+                            </p>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
-            {isFinishing && (
-                <div className="flex items-center gap-3 text-indigo-600 font-bold animate-pulse">
-                    <Spinner className="w-4 h-4" />
-                    <span>Processing Secure Token...</span>
+            {isProcessing && (
+                <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-sm">
+                    <Spinner className="w-12 h-12 text-indigo-500 mb-4" />
+                    <p className="text-xl font-black text-white tracking-widest uppercase animate-pulse">Confirming Impact...</p>
                 </div>
             )}
 
             {error && (
-                <p className="text-red-500 text-[10px] font-black uppercase tracking-widest bg-red-50 px-6 py-3 rounded-full border border-red-100 text-center">
+                <motion.div 
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="p-4 rounded-2xl bg-red-50 border border-red-100 text-red-600 text-[10px] font-black uppercase text-center tracking-widest"
+                >
                     {error}
-                </p>
+                </motion.div>
             )}
-
-            <div className="flex flex-col items-center gap-2 opacity-50 mt-4">
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Zero-Knowledge Hardware Encryption</p>
-            </div>
-        </motion.div>
+        </div>
     );
 }
