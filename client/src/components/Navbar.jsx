@@ -70,7 +70,7 @@ export default function Navbar() {
                 )}
               </Link>
             )
-          )}
+          ))}
           
           {user ? (
             <button onClick={logout} className="p-4 text-slate-400 opacity-60">
