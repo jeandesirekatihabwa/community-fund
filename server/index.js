@@ -24,18 +24,18 @@ const server = http.createServer(app);
 
 let prisma;
 try {
-  prisma = new PrismaClient({
-    errorFormat: 'minimal',
-  });
-  
-  // Test database connection
-  prisma.$connect()
-    .then(() => console.log('[Database] Connected successfully.'))
-    .catch((err) => {
-      console.error('[Database] Connection failed:', err.message);
+    prisma = new PrismaClient({
+        errorFormat: 'minimal',
     });
+
+    // Test database connection
+    prisma.$connect()
+        .then(() => console.log('[Database] Connected successfully.'))
+        .catch((err) => {
+            console.error('[Database] Connection failed:', err.message);
+        });
 } catch (e) {
-  console.error('[Database] Prisma initialization failed:', e.message);
+    console.error('[Database] Prisma initialization failed:', e.message);
 }
 
 const io = new Server(server, {
@@ -72,9 +72,9 @@ app.use(cors({
 }));
 
 // The Stripe Webhook requires the raw unparsed body to verify the signature
-app.post('/api/webhook', express.raw({type: 'application/json'}), async (req, res) => {
+app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
     const sig = req.headers['stripe-signature'];
-    
+
     let event;
     try {
         const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -84,8 +84,8 @@ app.post('/api/webhook', express.raw({type: 'application/json'}), async (req, re
         }
 
         event = stripe.webhooks.constructEvent(
-            req.body, 
-            sig, 
+            req.body,
+            sig,
             webhookSecret
         );
     } catch (err) {
@@ -99,7 +99,7 @@ app.post('/api/webhook', express.raw({type: 'application/json'}), async (req, re
         const currency = paymentIntent.currency;
         const payment_intent_id = paymentIntent.id;
         const user_id = paymentIntent.metadata?.user_id || null;
-        
+
         try {
             await prisma.contributions.create({
                 data: {
@@ -110,7 +110,7 @@ app.post('/api/webhook', express.raw({type: 'application/json'}), async (req, re
                     user_id: user_id ? parseInt(user_id) : null
                 }
             });
-            
+
             console.log(`[Webhook] Recorded successful payment ${payment_intent_id} for user ${user_id}`);
             io.emit('stats_updated');
         } catch (dbErr) {
@@ -120,7 +120,7 @@ app.post('/api/webhook', express.raw({type: 'application/json'}), async (req, re
     }
 
     // Return a 200 response to acknowledge receipt of the event
-    res.send({received: true});
+    res.send({ received: true });
 });
 
 // Parse JSON bodies for all remaining routes
@@ -169,7 +169,7 @@ const paymentLimiter = rateLimit({
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
-    
+
     if (token == null) {
         console.log("No token provided");
         return res.sendStatus(401);
@@ -231,7 +231,7 @@ app.post('/auth/init', authLimiter, async (req, res) => {
 
     try {
         let user = await prisma.users.findUnique({ where: { email } });
-        
+
         const verification_code = generateCode();
         const verification_expires = new Date(Date.now() + 600000); // 10 minutes
 
@@ -255,8 +255,8 @@ app.post('/auth/init', authLimiter, async (req, res) => {
 
         await sendVerificationEmail(email, verification_code);
 
-        res.json({ 
-            message: 'Security code dispatched', 
+        res.json({
+            message: 'Security code dispatched',
             isNewUser: !user.name // If no name, they haven't onboarded
         });
     } catch (error) {
@@ -284,7 +284,7 @@ app.post('/auth/verify', authLimiter, async (req, res) => {
         // Mark as verified
         const updatedUser = await prisma.users.update({
             where: { id: user.id },
-            data: { 
+            data: {
                 is_verified: true,
                 verification_code: null,
                 verification_expires: null
@@ -292,13 +292,13 @@ app.post('/auth/verify', authLimiter, async (req, res) => {
         });
 
         const token = jwt.sign(
-            { id: updatedUser.id, email: updatedUser.email }, 
-            process.env.JWT_SECRET || 'secret', 
+            { id: updatedUser.id, email: updatedUser.email },
+            process.env.JWT_SECRET || 'secret',
             { expiresIn: '7d' }
         );
 
-        res.json({ 
-            user: updatedUser, 
+        res.json({
+            user: updatedUser,
             token,
             isNewUser: !updatedUser.name
         });
@@ -346,7 +346,7 @@ app.post('/auth/resend-code', authLimiter, async (req, res) => {
 
         await prisma.users.update({
             where: { id: user.id },
-            data: { 
+            data: {
                 verification_code,
                 verification_expires
             }
@@ -388,7 +388,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
         case 'payment_intent.succeeded':
             const paymentIntent = event.data.object;
             console.log(`[Webhook] PaymentIntent succeeded: ${paymentIntent.id}`);
-            
+
             // Atomic database record
             try {
                 const userId = paymentIntent.metadata.user_id;
@@ -415,11 +415,11 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
                 console.error(`[Webhook DB Error]`, dbErr.message);
             }
             break;
-            
+
         case 'payment_intent.payment_failed':
             console.warn(`[Webhook] Payment failed: ${event.data.object.id}`);
             break;
-            
+
         default:
             console.log(`[Webhook] Unhandled event type ${event.type}`);
     }
@@ -436,8 +436,8 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
 app.post('/api/payment/session', authenticateToken, paymentLimiter, async (req, res) => {
     try {
         const { amount = 500, currency = 'eur' } = req.body;
-        
-        console.log(`[Payment] Initiating €${amount/100} session for user ${req.user.id}`);
+
+        console.log(`[Payment] Initiating €${amount / 100} session for user ${req.user.id}`);
 
         const paymentIntent = await stripe.paymentIntents.create({
             amount,
@@ -466,7 +466,7 @@ app.post('/api/payment/session', authenticateToken, paymentLimiter, async (req, 
  */
 app.post('/api/payment/finalize', authenticateToken, async (req, res) => {
     const { payment_intent_id } = req.body;
-    
+
     if (!payment_intent_id) return res.status(400).json({ error: 'Intent ID required' });
 
     try {
@@ -506,53 +506,53 @@ app.post('/api/payment/finalize', authenticateToken, async (req, res) => {
 // Local fallback for development environment without webhook tunneling
 if (process.env.NODE_ENV !== 'production') {
     app.post('/api/verify-payment', authenticateToken, async (req, res) => {
-    const { payment_intent_id } = req.body;
-    
-    if (!payment_intent_id) {
-        return res.status(400).send({ error: 'Missing payment intent ID' });
-    }
+        const { payment_intent_id } = req.body;
 
-    try {
-        // Retrieve the payment intent from Stripe to confirm it actually succeeded
-        const paymentIntent = await stripe.paymentIntents.retrieve(payment_intent_id);
-        
-        if (paymentIntent.status !== 'succeeded') {
-            return res.status(400).send({ error: 'Payment has not succeeded' });
+        if (!payment_intent_id) {
+            return res.status(400).send({ error: 'Missing payment intent ID' });
         }
 
-        // Check if we already recorded this payment
-        const existing = await prisma.contributions.findFirst({
-            where: { payment_intent_id }
-        });
+        try {
+            // Retrieve the payment intent from Stripe to confirm it actually succeeded
+            const paymentIntent = await stripe.paymentIntents.retrieve(payment_intent_id);
 
-        if (existing) {
-            return res.send({ success: true, message: 'Already recorded' });
-        }
-
-        const amount = paymentIntent.amount;
-        const currency = paymentIntent.currency;
-        const user_id = paymentIntent.metadata?.user_id || req.user.id;
-        
-        // Save the contribution
-        await prisma.contributions.create({
-            data: {
-                amount,
-                currency,
-                payment_intent_id,
-                status: 'succeeded',
-                user_id: user_id ? parseInt(user_id) : null
+            if (paymentIntent.status !== 'succeeded') {
+                return res.status(400).send({ error: 'Payment has not succeeded' });
             }
-        });
-        
-        console.log(`[Local Sync] Recorded successful payment ${payment_intent_id} for user ${user_id}`);
-        io.emit('stats_updated');
-        
-        res.send({ success: true, message: 'Payment recorded locally' });
-    } catch (e) {
-        console.error("Local sync error:", e);
-        res.status(500).send({ error: e.message });
-    }
-});
+
+            // Check if we already recorded this payment
+            const existing = await prisma.contributions.findFirst({
+                where: { payment_intent_id }
+            });
+
+            if (existing) {
+                return res.send({ success: true, message: 'Already recorded' });
+            }
+
+            const amount = paymentIntent.amount;
+            const currency = paymentIntent.currency;
+            const user_id = paymentIntent.metadata?.user_id || req.user.id;
+
+            // Save the contribution
+            await prisma.contributions.create({
+                data: {
+                    amount,
+                    currency,
+                    payment_intent_id,
+                    status: 'succeeded',
+                    user_id: user_id ? parseInt(user_id) : null
+                }
+            });
+
+            console.log(`[Local Sync] Recorded successful payment ${payment_intent_id} for user ${user_id}`);
+            io.emit('stats_updated');
+
+            res.send({ success: true, message: 'Payment recorded locally' });
+        } catch (e) {
+            console.error("Local sync error:", e);
+            res.status(500).send({ error: e.message });
+        }
+    });
 }
 app.get('/my-contributions', authenticateToken, async (req, res) => {
     try {
@@ -611,7 +611,7 @@ app.get('/community-stats', async (req, res) => {
 
 io.on('connection', (socket) => {
     console.log(`[Socket] A user connected: ${socket.id}`);
-    
+
     socket.on('disconnect', () => {
         console.log(`[Socket] User disconnected: ${socket.id}`);
     });

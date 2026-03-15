@@ -17,7 +17,7 @@ export default function Home() {
     const [isStartingPayment, setIsStartingPayment] = useState(false);
     const [showPayment, setShowPayment] = useState(false);
     const [customAmount, setCustomAmount] = useState(5); // Default to 5
-    
+
     const { user } = useAuth();
     const navigate = useNavigate();
 
@@ -71,9 +71,9 @@ export default function Home() {
 
             <main className="flex-grow flex items-center justify-center py-20 px-4 relative z-10">
                 <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-                    
+
                     {/* Left: Branding */}
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, x: -30 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.8 }}
@@ -85,12 +85,12 @@ export default function Home() {
                                 Scalable Financial Impact
                             </span>
                         </div>
-                        
+
                         <h1 className="text-6xl md:text-7xl font-extrabold tracking-tighter text-slate-900 leading-[1.1]">
                             The Future of <br />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600">Community Support</span>
                         </h1>
-                        
+
                         <p className="text-xl text-slate-500 font-medium leading-relaxed max-w-lg">
                             Building a self-sustaining ecosystem for micro-contributions, trusted by over <span className="text-slate-900 font-extrabold">10 Million</span> heroes globally.
                         </p>
@@ -126,7 +126,7 @@ export default function Home() {
                         <div className="premium-card p-10 glass shadow-2xl relative overflow-hidden border border-white/50 backdrop-blur-2xl flex flex-col min-h-[500px] justify-center">
                             <AnimatePresence mode="wait">
                                 {isInitializing ? (
-                                    <motion.div 
+                                    <motion.div
                                         key="loading"
                                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                                         className="flex flex-col items-center justify-center gap-4 py-20"
@@ -135,7 +135,7 @@ export default function Home() {
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">Establishing Secure Financial Link...</p>
                                     </motion.div>
                                 ) : (
-                                    <motion.div 
+                                    <motion.div
                                         key="content"
                                         initial={{ opacity: 0, scale: 0.95 }}
                                         animate={{ opacity: 1, scale: 1 }}
@@ -149,13 +149,13 @@ export default function Home() {
                                                         Back to Mission
                                                     </button>
                                                 </div>
-                                                <Elements stripe={stripePromise} options={{ 
+                                                <Elements stripe={stripePromise} options={{
                                                     clientSecret,
                                                     appearance: { theme: 'stripe', variables: { colorPrimary: '#4f46e5' } }
                                                 }}>
-                                                    <ImpactPaymentSystem 
-                                                        amount={customAmount * 100} 
-                                                        onSuccess={() => navigate('/dashboard')} 
+                                                    <ImpactPaymentSystem
+                                                        amount={customAmount * 100}
+                                                        onSuccess={() => navigate('/dashboard')}
                                                     />
                                                 </Elements>
                                             </div>
@@ -196,7 +196,7 @@ export default function Home() {
                                                     <span className="block text-7xl font-black tracking-tighter mb-2 italic">€{customAmount.toFixed(2)}</span>
                                                     <span className="text-indigo-300 text-[10px] font-black uppercase tracking-[0.3em]">Direct Contribution</span>
                                                 </div>
-                                                
+
                                                 <motion.button
                                                     whileHover={{ scale: 1.02 }}
                                                     whileTap={{ scale: 0.98 }}

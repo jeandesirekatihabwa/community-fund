@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { 
-    PaymentRequestButtonElement, 
-    useStripe, 
+import {
+    PaymentRequestButtonElement,
+    useStripe,
     useElements,
-    PaymentElement 
+    PaymentElement
 } from "@stripe/react-stripe-js";
 import { motion, AnimatePresence } from "framer-motion";
 import { Shield, CreditCard, ChevronRight, CheckCircle2, AlertCircle, Loader2, Zap, Smartphone } from "lucide-react";
@@ -12,7 +12,7 @@ import api from "../../lib/api";
 export default function ImpactPaymentSystem({ amount = 500, onSuccess }) {
     const stripe = useStripe();
     const elements = useElements();
-    
+
     // States
     const [paymentRequest, setPaymentRequest] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -42,7 +42,7 @@ export default function ImpactPaymentSystem({ amount = 500, onSuccess }) {
                 setPaymentRequest(pr);
                 setStatus('ready');
                 setActiveTab('wallet');
-                
+
                 // Detection for UI labeling
                 if (result.applePay) setWalletType('Apple Pay');
                 else if (result.googlePay) setWalletType('Google Pay');
@@ -95,7 +95,7 @@ export default function ImpactPaymentSystem({ amount = 500, onSuccess }) {
             confirmParams: {
                 return_url: `${window.location.origin}/completion`,
             },
-            redirect: 'if_required' 
+            redirect: 'if_required'
         });
 
         if (error) {
@@ -123,7 +123,7 @@ export default function ImpactPaymentSystem({ amount = 500, onSuccess }) {
         <div className="w-full flex flex-col gap-6 font-sans">
             <AnimatePresence mode="wait">
                 {status === 'success' ? (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
                         className="flex flex-col items-center py-10 text-center"
                     >
@@ -138,14 +138,14 @@ export default function ImpactPaymentSystem({ amount = 500, onSuccess }) {
                         {/* Professional Tab Switcher */}
                         <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shadow-inner">
                             {paymentRequest && (
-                                <button 
+                                <button
                                     onClick={() => setActiveTab('wallet')}
                                     className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'wallet' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
                                 >
                                     <Smartphone size={14} /> {walletType}
                                 </button>
                             )}
-                            <button 
+                            <button
                                 onClick={() => setActiveTab('card')}
                                 className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'card' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
                             >
@@ -154,13 +154,13 @@ export default function ImpactPaymentSystem({ amount = 500, onSuccess }) {
                         </div>
 
                         {activeTab === 'wallet' && paymentRequest ? (
-                            <motion.div 
+                            <motion.div
                                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                                 className="space-y-6"
                             >
                                 <div className="p-1 bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden hover:scale-[1.01] transition-transform cursor-pointer">
-                                    <PaymentRequestButtonElement 
-                                        options={{ 
+                                    <PaymentRequestButtonElement
+                                        options={{
                                             paymentRequest,
                                             style: {
                                                 paymentRequestButton: {
@@ -169,7 +169,7 @@ export default function ImpactPaymentSystem({ amount = 500, onSuccess }) {
                                                     height: '64px',
                                                 },
                                             }
-                                        }} 
+                                        }}
                                     />
                                 </div>
                                 <div className="text-center px-4">
@@ -179,7 +179,7 @@ export default function ImpactPaymentSystem({ amount = 500, onSuccess }) {
                                 </div>
                             </motion.div>
                         ) : (
-                            <motion.form 
+                            <motion.form
                                 initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                                 onSubmit={handleCardSubmit}
                                 className="space-y-8"
@@ -187,7 +187,7 @@ export default function ImpactPaymentSystem({ amount = 500, onSuccess }) {
                                 <div className="p-8 bg-slate-50/50 rounded-[2rem] border border-slate-200 border-dashed">
                                     <PaymentElement options={{ layout: 'tabs' }} />
                                 </div>
-                                
+
                                 <button
                                     disabled={isProcessing}
                                     className="w-full bg-slate-900 text-white rounded-2xl py-6 text-xl font-black shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50"
@@ -202,7 +202,7 @@ export default function ImpactPaymentSystem({ amount = 500, onSuccess }) {
                         )}
 
                         {errorMessage && (
-                            <motion.div 
+                            <motion.div
                                 initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
                                 className="p-4 rounded-2xl bg-red-50 border border-red-100 text-red-600 text-[10px] font-black uppercase text-center tracking-widest flex items-center justify-center gap-2"
                             >
