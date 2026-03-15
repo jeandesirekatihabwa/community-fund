@@ -1,6 +1,15 @@
 # Stage 1: Build
 FROM node:20-slim AS build
 WORKDIR /app
+
+# Add ARG for build-time variables (Vite requires these during 'npm run build')
+ARG VITE_GOOGLE_CLIENT_ID
+ARG VITE_API_URL
+
+# Explicitly set them as ENV so the build process can see them
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+ENV VITE_API_URL=$VITE_API_URL
+
 COPY package*.json ./
 RUN npm install
 COPY . .

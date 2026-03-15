@@ -19,6 +19,7 @@ const queryClient = new QueryClient({
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
+    {console.log("Auth Check:", !!import.meta.env.VITE_GOOGLE_CLIENT_ID ? "ID Loaded" : "ID MISSING FROM BUILD")}
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
