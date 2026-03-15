@@ -2,7 +2,8 @@ import axios from "axios";
 
 // Production uses VITE_API_URL
 // Local development falls back to localhost
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+const rawUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+const API_URL = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
 
 const api = axios.create({
   baseURL: API_URL,

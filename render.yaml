@@ -6,7 +6,7 @@ services:
     dockerContext: server
     dockerfilePath: server/Dockerfile
     plan: free
-    region: oregon # or your preferred region
+    region: oregon
     envVars:
       - key: NODE_ENV
         value: production
@@ -17,12 +17,12 @@ services:
         placeholder: "Your Neon PostgreSQL Connection String"
       - key: STRIPE_SECRET_KEY
         sync: false
-        placeholder: "Your Stripe Secret Key (sk_live_...)"
+        placeholder: "Your Stripe Secret Key"
       - key: JWT_SECRET
         generateValue: true
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
-        placeholder: "Your Stripe Webhook Secret (whsec_...)"
+        placeholder: "Your Stripe Webhook Secret"
       - key: GOOGLE_CLIENT_ID
         sync: false
         placeholder: "Your Google Client ID"
@@ -32,7 +32,7 @@ services:
           type: web
           property: host
 
-  # Frontend Client
+  # Frontend Client (Vite requires build-time variables)
   - type: web
     name: community-fund-client
     env: docker
@@ -40,6 +40,8 @@ services:
     dockerfilePath: client/Dockerfile
     plan: free
     region: oregon
+    # Moved VITE variables here because Docker builds need them at BUILD time
+    # Note: Values must still be provided in the Render Dashboard
     envVars:
       - key: VITE_API_URL
         fromService:
