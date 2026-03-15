@@ -3,11 +3,12 @@ import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { useNavigate } from "react-router-dom";
 import CheckoutForm from "../components/CheckoutForm";
+import ProfessionalGooglePay from "../components/ProfessionalGooglePay";
 import { useAuth } from "../context/AuthContext";
 import { Spinner } from "../components/ui";
 import api from "../lib/api";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, Sparkles, ShieldCheck, Globe, ArrowRight, Zap, Users } from "lucide-react";
+import { Heart, Sparkles, ShieldCheck, Globe, ArrowRight, Zap, Users, ChevronLeft } from "lucide-react";
 
 export default function Home() {
     const [stripePromise, setStripePromise] = useState(null);
@@ -15,6 +16,7 @@ export default function Home() {
     const [isInitializing, setIsInitializing] = useState(true);
     const [paymentError, setPaymentError] = useState(null);
     const [isStartingPayment, setIsStartingPayment] = useState(false);
+    const [showPayment, setShowPayment] = useState(false);
     
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -184,11 +186,15 @@ export default function Home() {
                                             </div>
                                         )}
 
-                                        {stripePromise && clientSecret ? (
-                                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                                                <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
-                                                    <CheckoutForm />
-                                                </Elements>
+                                        {stripePromise && showPayment ? (
+                                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 w-full px-4">
+                                                <div className="flex justify-start mb-6 -ml-2">
+                                                    <button onClick={() => setShowPayment(false)} className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 hover:text-indigo-600 transition-colors">
+                                                        <ChevronLeft size={16} />
+                                                        Back to Mission
+                                                    </button>
+                                                </div>
+                                                <ProfessionalGooglePay amount={500} currency="EUR" />
                                             </div>
                                         ) : (
                                             <div className="flex flex-col items-center">
@@ -201,29 +207,16 @@ export default function Home() {
                                                 <motion.button
                                                     whileHover={{ scale: 1.02 }}
                                                     whileTap={{ scale: 0.98 }}
-                                                    onClick={initializePayment}
-                                                    disabled={isStartingPayment}
+                                                    onClick={() => !user ? navigate('/login') : setShowPayment(true)} 
                                                     className="group relative flex w-full items-center justify-center gap-3 rounded-2xl bg-indigo-600 px-8 py-5 text-lg font-black text-white shadow-xl shadow-indigo-200 transition-all hover:bg-indigo-700 disabled:opacity-70"
                                                 >
-                                                    {isStartingPayment ? (
-                                                        <Spinner className="w-6 h-6 text-current" />
-                                                    ) : (
-                                                        <>
-                                                            {user ? "Establish Support Link" : "Join & Contribute"}
-                                                            <ArrowRight className="h-6 w-6 transition-transform group-hover:translate-x-1" />
-                                                        </>
-                                                    )}
+                                                    {user ? "Initialize Google Pay" : "Join & Contribute"}
+                                                    <ArrowRight className="h-6 w-6 transition-transform group-hover:translate-x-1" />
                                                 </motion.button>
                                                 
-                                                <div className="mt-8 flex items-center justify-center gap-8 opacity-40">
-                                                    <div className="h-6 w-12 bg-slate-400 rounded-md shimmer"></div>
-                                                    <div className="h-6 w-12 bg-slate-400 rounded-md shimmer"></div>
-                                                    <div className="h-6 w-12 bg-slate-400 rounded-md shimmer"></div>
-                                                </div>
-                                                
-                                                <p className="mt-6 text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest flex items-center gap-2">
+                                                <p className="mt-8 text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest flex items-center gap-2">
                                                     <ShieldCheck size={14} className="text-indigo-600" />
-                                                    Securely encrypted by Stripe Infrastructure
+                                                    Native Mobile Wallet Integration Active
                                                 </p>
                                             </div>
                                         )}

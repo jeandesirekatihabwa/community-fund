@@ -19,6 +19,7 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 const app = express();
+app.set('trust proxy', 1); // Required for Render/Cloud environments
 const server = http.createServer(app);
 
 let prisma;
@@ -160,7 +161,7 @@ const authLimiter = rateLimit({
 // Create a very strict rate limiter for payment intents to prevent card testing algorithms
 const paymentLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // Limit each IP to 5 payment intent creations per windowMs
+    max: 20, // Increased for testing (Prevents card testing attacks)
     message: { error: 'Too many payment requests from this IP. Please wait before trying another card.' }
 });
 
