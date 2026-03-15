@@ -1,8 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { Button } from "./ui";
-import { LogOut, LayoutDashboard, Globe, Home, User as UserIcon } from "lucide-react";
-import { motion } from "framer-motion";
+import { LogOut, LayoutDashboard, Globe, Home, User as UserIcon, LogIn } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -10,100 +9,96 @@ export default function Navbar() {
 
   const isActive = (path) => location.pathname === path;
 
-  const navLinkClass = (path) =>
-    `relative px-4 py-2 text-sm font-bold transition-all flex items-center gap-2 ${
-      isActive(path)
-        ? "text-indigo-600"
-        : "text-slate-500 hover:text-slate-900"
-    }`;
+  const navItems = [
+    { path: "/", icon: Home, label: "Home" },
+    { path: "/community", icon: Globe, label: "Impact" },
+    { path: "/dashboard", icon: LayoutDashboard, label: "Profile", protected: true },
+  ];
 
   return (
-    <nav className="sticky top-0 z-50 glass border-b border-indigo-100/50 shadow-sm backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
-          <div className="flex items-center gap-12">
-            <Link to="/" className="flex items-center gap-3 group" aria-label="Home">
-              <motion.div 
-                whileHover={{ rotate: 5, scale: 1.05 }}
-                className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-700 flex items-center justify-center text-white font-extrabold shadow-lg shadow-indigo-200"
-              >
-                C
-              </motion.div>
-              <span className="font-extrabold text-2xl tracking-tighter text-slate-900 group-hover:text-indigo-600 transition-colors">
-                Community<span className="text-indigo-600">Fund</span>
-              </span>
+    <>
+      {/* Desktop Header - Visible only on md+ */}
+      <nav className="hidden md:block sticky top-0 z-50 glass border-b border-indigo-100/50 shadow-sm backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-20">
+            <Link to="/" className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-extrabold shadow-lg">C</div>
+              <span className="font-extrabold text-2xl tracking-tighter">Community<span className="text-indigo-600">Fund</span></span>
             </Link>
-
-            <div className="hidden md:flex items-center space-x-2">
-              <Link to="/" className={navLinkClass("/")}>
-                <Home size={18} />
-                Home
-                {isActive("/") && <motion.div layoutId="nav-active" className="absolute bottom-[-24px] left-0 right-0 h-1 bg-indigo-600 rounded-full" />}
-              </Link>
-              <Link to="/community" className={navLinkClass("/community")}>
-                <Globe size={18} />
-                Impact
-                {isActive("/community") && <motion.div layoutId="nav-active" className="absolute bottom-[-24px] left-0 right-0 h-1 bg-indigo-600 rounded-full" />}
-              </Link>
-              {user && (
-                <Link to="/dashboard" className={navLinkClass("/dashboard")}>
-                  <LayoutDashboard size={18} />
-                  Dashboard
-                  {isActive("/dashboard") && <motion.div layoutId="nav-active" className="absolute bottom-[-24px] left-0 right-0 h-1 bg-indigo-600 rounded-full" />}
-                </Link>
+            
+            <div className="flex items-center gap-6">
+              {navItems.map((item) => (
+                (!item.protected || user) && (
+                  <Link key={item.path} to={item.path} className={`text-sm font-bold flex items-center gap-2 ${isActive(item.path) ? "text-indigo-600" : "text-slate-500"}`}>
+                    <item.icon size={18} />
+                    {item.label}
+                  </Link>
+                )
+              ))}
+              {user ? (
+                <button onClick={logout} className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:text-red-600 transition-colors">
+                  <LogOut size={18} />
+                </button>
+              ) : (
+                <Link to="/login" className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-100">Get Started</Link>
               )}
             </div>
           </div>
-
-          <div className="flex items-center gap-6">
-            {user ? (
-              <div className="flex items-center gap-6">
-                <div className="hidden sm:flex flex-col items-end">
-                  <span className="text-sm font-bold text-slate-900 leading-none">
-                    {user.name}
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
-                    Verified Holder
-                  </span>
-                </div>
-
-                <motion.div 
-                  whileHover={{ scale: 1.05 }}
-                  className="relative group cursor-pointer"
-                >
-                  {user.avatar ? (
-                    <img
-                      className="h-10 w-10 rounded-xl ring-2 ring-indigo-50 shadow-md object-cover transition-all group-hover:ring-indigo-200"
-                      src={user.avatar}
-                      alt={user.name}
-                    />
-                  ) : (
-                    <div className="h-10 w-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold ring-2 ring-indigo-50 shadow-md">
-                      <UserIcon size={20} />
-                    </div>
-                  )}
-                </motion.div>
-
-                <Button
-                  variant="secondary"
-                  onClick={logout}
-                  className="!rounded-xl !bg-slate-50 !border-slate-100 !text-slate-600 hover:!bg-red-50 hover:!text-red-600 hover:!border-red-100"
-                >
-                  <LogOut size={16} />
-                </Button>
-              </div>
-            ) : (
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Link to="/login">
-                  <Button variant="primary" className="!rounded-xl px-8 !py-3 shadow-lg shadow-indigo-100">
-                    Get Started
-                  </Button>
-                </Link>
-              </motion.div>
-            )}
-          </div>
         </div>
+      </nav>
+
+      {/* Mobile Bottom Navigation - Visible only on mobile */}
+      <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-[92%] max-w-sm">
+        <div className="glass-dark rounded-[2.5rem] p-2 flex items-center justify-around shadow-2xl shadow-indigo-900/20 border border-white/10 backdrop-blur-2xl">
+          {navItems.map((item) => (
+            (!item.protected || user) && (
+              <Link 
+                key={item.path} 
+                to={item.path} 
+                className="relative p-4 flex flex-col items-center gap-1 group"
+              >
+                <item.icon 
+                  size={24} 
+                  className={`transition-all duration-300 ${isActive(item.path) ? "text-white scale-110" : "text-slate-400 opacity-60 group-hover:opacity-100"}`} 
+                />
+                {isActive(item.path) && (
+                  <motion.div 
+                    layoutId="mobile-nav-indicator"
+                    className="absolute inset-0 bg-white/10 rounded-[2rem] -z-10"
+                    transition={{ type: "spring", bounce: 0.3, duration: 0.6 }}
+                  />
+                )}
+              </Link>
+            )
+          )}
+          
+          {user ? (
+            <button onClick={logout} className="p-4 text-slate-400 opacity-60">
+              <LogOut size={24} />
+            </button>
+          ) : (
+            <Link to="/login" className="p-4">
+              <LogIn size={24} className={isActive("/login") ? "text-white" : "text-slate-400 opacity-60"} />
+            </Link>
+          )}
+        </div>
+        
+        {/* Safe Area Buffer */}
+        <div className="h-[env(safe-area-inset-bottom)]"></div>
+      </nav>
+
+      {/* Mobile Top Branding Bar */}
+      <div className="md:hidden sticky top-0 z-50 bg-white/80 backdrop-blur-md px-6 py-4 flex items-center justify-between border-b border-slate-100">
+        <Link to="/" className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-xs font-black shadow-md">CF</div>
+          <span className="font-extrabold text-lg tracking-tighter">CommunityFund</span>
+        </Link>
+        {user && (
+          <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center overflow-hidden">
+            {user.avatar ? <img src={user.avatar} className="w-full h-full object-cover" /> : <UserIcon size={14} className="text-indigo-400" />}
+          </div>
+        )}
       </div>
-    </nav>
+    </>
   );
-}
+}
