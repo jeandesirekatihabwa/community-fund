@@ -164,6 +164,26 @@ const paymentLimiter = rateLimit({
     message: { error: 'Too many payment requests from this IP. Please wait before trying another card.' }
 });
 
+// Middleware to verify session token
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    if (token == null) {
+        console.log("No token provided");
+        return res.sendStatus(401);
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET || 'secret', (err, user) => {
+        if (err) {
+            console.error("JWT Verification failed:", err.message);
+            return res.sendStatus(403);
+        }
+        req.user = user;
+        next();
+    });
+};
+
 app.post('/auth/google', authLimiter, async (req, res) => {
     const { token } = req.body;
     try {
@@ -373,25 +393,6 @@ app.post('/create-payment-intent', paymentLimiter, async (req, res) => {
     }
 });
 
-// Middleware to verify session token
-const authenticateToken = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-    
-    if (token == null) {
-        console.log("No token provided");
-        return res.sendStatus(401);
-    }
-
-    jwt.verify(token, process.env.JWT_SECRET || 'secret', (err, user) => {
-        if (err) {
-            console.error("JWT Verification failed:", err.message);
-            return res.sendStatus(403);
-        }
-        req.user = user;
-        next();
-    });
-};
 
 // Local fallback for development environment without webhook tunneling
 if (process.env.NODE_ENV !== 'production') {
