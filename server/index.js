@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripe = require('stripe')((process.env.STRIPE_SECRET_KEY || '').trim());
 const { PrismaClient } = require('@prisma/client');
 const http = require('http');
 const { Server } = require('socket.io');
