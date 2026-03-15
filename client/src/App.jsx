@@ -39,10 +39,10 @@ function App() {
   }, [publishableKey]);
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 flex flex-col">
+    <div className="min-h-[100dvh] bg-slate-50 font-sans text-slate-900 flex flex-col">
       <Navbar />
 
-      <main className="flex-grow flex flex-col">
+      <main className="flex-grow flex flex-col pb-32 md:pb-0">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />

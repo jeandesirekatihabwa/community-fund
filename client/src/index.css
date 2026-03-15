@@ -9,8 +9,6 @@ html {
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* Prevent rubber-banding on iOS while keeping smooth scrolling */
-    overscroll-behavior-y: none;
 }
 
 :root {
@@ -23,7 +21,6 @@ body {
     background-color: #f8fafc; /* Tailwind slate-50 */
     /* Mobile tap highlight removal */
     -webkit-tap-highlight-color: transparent;
-    user-select: none; /* Professional app feel */
 }
 
 /* Glassmorphism utility */
