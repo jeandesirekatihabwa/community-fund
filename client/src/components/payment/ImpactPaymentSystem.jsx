@@ -36,6 +36,8 @@ export default function ImpactPaymentSystem({ amount = 500, onSuccess }) {
         });
 
         // 🛡️ Robust Browser Detection
+        const isInApp = /Instagram|FBAN|FBAV|LinkedInApp/i.test(navigator.userAgent);
+        
         pr.canMakePayment().then((result) => {
             console.log("[Payment Handshake] Browser Payment Support:", result);
             if (result) {
@@ -43,12 +45,12 @@ export default function ImpactPaymentSystem({ amount = 500, onSuccess }) {
                 setStatus('wallet_ready');
                 setActiveTab('wallet');
             } else {
-                setStatus('card_only');
+                setStatus(isInApp ? 'in_app_browser' : 'card_only');
                 setActiveTab('card');
             }
         }).catch(err => {
             console.error("[Payment Handshake] Detection Error:", err);
-            setStatus('card_only');
+            setStatus(isInApp ? 'in_app_browser' : 'card_only');
             setActiveTab('card');
         });
 
@@ -207,6 +209,18 @@ export default function ImpactPaymentSystem({ amount = 500, onSuccess }) {
                                     )}
                                 </button>
                             </motion.form>
+                        )}
+
+                        {status === 'in_app_browser' && (
+                            <motion.div 
+                                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                                className="p-4 rounded-2xl bg-amber-50 border border-amber-100 text-amber-700 text-[10px] font-black uppercase text-center tracking-widest leading-relaxed mb-4"
+                            >
+                                <AlertCircle size={14} className="mx-auto mb-2" />
+                                In-App Browser Detected. <br />
+                                Google Pay requires the full **Chrome App**. <br />
+                                Please copy this link and open in Chrome.
+                            </motion.div>
                         )}
 
                         {status === 'error' && (
