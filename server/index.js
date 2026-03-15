@@ -370,27 +370,78 @@ app.get('/', (req, res) => {
     res.send('Weekly Contribution API is running');
 });
 
-app.post('/create-payment-intent', paymentLimiter, async (req, res) => {
+// --- 💳 Professional Impact Payment System (Scratch Rebuild) ---
+
+/**
+ * Endpoint to prepare a secure payment session.
+ * Used for both Native Wallets (GPay) and Premium Cards.
+ */
+app.post('/api/payment/session', authenticateToken, paymentLimiter, async (req, res) => {
     try {
-        const { amount, currency, user_id } = req.body;
+        const { amount = 500, currency = 'eur' } = req.body;
+        
+        console.log(`[Payment] Initiating €${amount/100} session for user ${req.user.id}`);
 
-        // Create a PaymentIntent with the order amount and currency
         const paymentIntent = await stripe.paymentIntents.create({
-            amount: amount, // in cents
-            currency: currency,
+            amount,
+            currency: currency.toLowerCase(),
             metadata: {
-                user_id: user_id
+                user_id: req.user.id,
+                email: req.user.email,
+                type: 'community_contribution'
             },
-            automatic_payment_methods: {
-                enabled: true,
-            },
+            automatic_payment_methods: { enabled: true },
         });
 
-        res.send({
+        res.json({
             clientSecret: paymentIntent.client_secret,
+            id: paymentIntent.id
         });
-    } catch (e) {
-        res.status(400).send({ error: { message: e.message } });
+    } catch (error) {
+        console.error("[Payment Error] Session creation failed:", error.message);
+        res.status(500).json({ error: 'Financial gateway initialization failed' });
+    }
+});
+
+/**
+ * Direct Confirmation Verification
+ * Used to immediately record success in our database.
+ */
+app.post('/api/payment/finalize', authenticateToken, async (req, res) => {
+    const { payment_intent_id } = req.body;
+    
+    if (!payment_intent_id) return res.status(400).json({ error: 'Intent ID required' });
+
+    try {
+        const intent = await stripe.paymentIntents.retrieve(payment_intent_id);
+
+        if (intent.status === 'succeeded') {
+            // Check if already recorded
+            const existing = await prisma.contributions.findFirst({
+                where: { payment_intent_id }
+            });
+
+            if (!existing) {
+                await prisma.contributions.create({
+                    data: {
+                        amount: intent.amount,
+                        currency: intent.currency,
+                        payment_intent_id,
+                        status: 'succeeded',
+                        user_id: req.user.id
+                    }
+                });
+                console.log(`[Payment] Verified and recorded: ${payment_intent_id}`);
+                io.emit('stats_updated');
+            }
+
+            return res.json({ success: true });
+        }
+
+        res.status(400).json({ status: intent.status });
+    } catch (error) {
+        console.error("[Payment Error] Finalization failed:", error.message);
+        res.status(500).json({ error: 'Impact recording failed' });
     }
 });
 
