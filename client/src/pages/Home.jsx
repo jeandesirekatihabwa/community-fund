@@ -4,8 +4,10 @@ import { loadStripe } from "@stripe/stripe-js";
 import { useNavigate } from "react-router-dom";
 import CheckoutForm from "../components/CheckoutForm";
 import { useAuth } from "../context/AuthContext";
-import { Spinner, Card } from "../components/ui";
+import { Spinner } from "../components/ui";
 import api from "../lib/api";
+import { motion, AnimatePresence } from "framer-motion";
+import { Heart, Sparkles, ShieldCheck, Globe, ArrowRight, Zap, Users } from "lucide-react";
 
 export default function Home() {
     const [stripePromise, setStripePromise] = useState(null);
@@ -26,7 +28,7 @@ export default function Home() {
                 }
             } catch (err) {
                 console.error("Failed to load Stripe config", err);
-                setPaymentError("Could not connect to payment provider. Please try again later.");
+                setPaymentError("Infrastructure connection delayed. Please refresh.");
             } finally {
                 setIsInitializing(false);
             }
@@ -35,7 +37,6 @@ export default function Home() {
     }, []);
 
     const initializePayment = async () => {
-        // Enforce login before contribution
         if (!user) {
             navigate('/login');
             return;
@@ -52,7 +53,7 @@ export default function Home() {
             setClientSecret(data.clientSecret);
         } catch (err) {
             console.error("Payment initiation failed", err);
-            setPaymentError(err.message || "Failed to start payment. Please try again.");
+            setPaymentError(err.message || "Financial bridge failed. Please try again.");
         } finally {
             setIsStartingPayment(false);
         }
@@ -66,82 +67,172 @@ export default function Home() {
             colorText: '#0f172a',
             colorDanger: '#ef4444',
             fontFamily: 'Inter, system-ui, sans-serif',
-            spacingUnit: '4px',
-            borderRadius: '8px',
+            spacingUnit: '5px',
+            borderRadius: '16px',
         }
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] py-12 px-4 sm:px-6 lg:px-8 bg-slate-50 relative overflow-hidden">
-            {/* Soft background blobs */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-indigo-100/50 rounded-full blur-3xl pointer-events-none -z-10"></div>
-            
-            <main className="w-full max-w-md relative z-10">
-                <Card className="p-8 sm:p-10 !rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5">
+        <div className="flex flex-col min-h-[calc(100vh-5rem)] mesh-gradient relative overflow-hidden font-sans">
+            {/* Background Mesh Orbs */}
+            <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-40">
+                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-200 rounded-full blur-[100px] animate-pulse"></div>
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-200 rounded-full blur-[100px] delay-700 animate-pulse"></div>
+            </div>
+
+            <main className="flex-grow flex items-center justify-center py-20 px-4 relative z-10">
+                <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
                     
-                    <div className="text-center mb-8">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-50 text-indigo-600 mb-6">
-                            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                            </svg>
+                    {/* Hero Text Section */}
+                    <motion.div 
+                        initial={{ opacity: 0, x: -30 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.8 }}
+                        className="space-y-8"
+                    >
+                        <div className="flex items-center gap-2 group cursor-default">
+                            <span className="bg-indigo-600/10 text-indigo-700 text-xs font-black uppercase tracking-widest px-4 py-2 rounded-full border border-indigo-100 flex items-center gap-2 animate-bounce">
+                                <Sparkles size={14} />
+                                Now Scaling Globally
+                            </span>
                         </div>
-                        <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-2">
-                            Support Community
+                        
+                        <h1 className="text-6xl md:text-7xl font-extrabold tracking-tighter text-slate-900 leading-[1.1]">
+                            The Future of <br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600">Community Support</span>
                         </h1>
-                        <p className="text-slate-500 text-sm">
-                            Join us in making an impact. Your €5 weekly contribution drives our mission forward.
+                        
+                        <p className="text-xl text-slate-500 font-medium leading-relaxed max-w-lg">
+                            Join over <span className="text-slate-900 font-bold">10 Million</span> visionaries. Our mission is to build a self-sustaining financial ecosystem for Every Community, powered by micro-contributions.
                         </p>
-                    </div>
 
-                    {isInitializing ? (
-                        <div className="flex justify-center py-12">
-                            <Spinner className="w-8 h-8 text-indigo-500" />
+                        <div className="grid grid-cols-3 gap-6 py-4">
+                            <div className="space-y-1">
+                                <div className="text-2xl font-black text-slate-900">10M+</div>
+                                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                                    <Users size={12} className="text-indigo-500" />
+                                    Members
+                                </div>
+                            </div>
+                            <div className="space-y-1">
+                                <div className="text-2xl font-black text-slate-900">180+</div>
+                                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                                    <Globe size={12} className="text-purple-500" />
+                                    Countries
+                                </div>
+                            </div>
+                            <div className="space-y-1">
+                                <div className="text-2xl font-black text-slate-900">100%</div>
+                                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                                    <ShieldCheck size={12} className="text-emerald-500" />
+                                    Verified
+                                </div>
+                            </div>
                         </div>
-                    ) : (
-                        <>
-                            {paymentError && (
-                                <div className="mb-6 rounded-lg bg-red-50 p-4 text-sm text-red-600 ring-1 ring-inset ring-red-500/10">
-                                    {paymentError}
-                                </div>
-                            )}
 
-                            {stripePromise && clientSecret ? (
-                                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                    <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
-                                        <CheckoutForm />
-                                    </Elements>
+                        <div className="flex items-center gap-6">
+                            <div className="flex -space-x-3">
+                                {[1,2,3,4,5].map(i => (
+                                    <div key={i} className={`w-10 h-10 rounded-full border-2 border-white bg-slate-${100 + i*100} shimmer`}></div>
+                                ))}
+                            </div>
+                            <p className="text-sm font-bold text-slate-400 italic">"The most transparent platform I've ever used."</p>
+                        </div>
+                    </motion.div>
+
+                    {/* Interaction Card Section */}
+                    <motion.div
+                        initial={{ opacity: 0, x: 30 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.8, delay: 0.2 }}
+                    >
+                        <div className="premium-card p-10 glass shadow-2xl relative overflow-hidden border border-white/50 backdrop-blur-2xl">
+                            {/* Decorative Shimmer */}
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl -mr-10 -mt-10"></div>
+                            
+                            <div className="text-center mb-10">
+                                <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-600 to-indigo-700 text-white mb-8 shadow-xl shadow-indigo-200 floating-animation">
+                                    <Heart size={40} className="fill-white/20" />
                                 </div>
-                            ) : (
-                                <div className="flex flex-col items-center">
-                                    <div className="mb-8 w-full rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 p-6 text-center text-white shadow-lg shadow-indigo-500/30">
-                                        <span className="block text-4xl font-bold tracking-tight mb-1">€5.00</span>
-                                        <span className="text-indigo-100 text-sm font-medium uppercase tracking-wider">Weekly Contribution</span>
-                                    </div>
-                                    
-                                    <button
-                                        onClick={initializePayment}
-                                        disabled={isStartingPayment}
-                                        className="group relative flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-8 py-3.5 text-sm font-semibold text-white transition-all hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                <h2 className="text-3xl font-black tracking-tight text-slate-900 mb-2">Initialize Support</h2>
+                                <p className="text-slate-500 font-medium">Single micro-contribution to fuel the impact.</p>
+                            </div>
+
+                            <AnimatePresence mode="wait">
+                                {isInitializing ? (
+                                    <motion.div 
+                                        key="loading"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        className="flex flex-col items-center justify-center py-20 gap-4"
                                     >
-                                        {isStartingPayment ? (
-                                            <Spinner className="w-5 h-5 text-current" />
-                                        ) : (
-                                            <>
-                                                {user ? "Contribute Now" : "Sign in to Contribute"}
-                                                <svg className="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                                </svg>
-                                            </>
+                                        <Spinner className="w-12 h-12" />
+                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest animate-pulse">Establishing Secure Link...</p>
+                                    </motion.div>
+                                ) : (
+                                    <motion.div 
+                                        key="content"
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        className="space-y-8"
+                                    >
+                                        {paymentError && (
+                                            <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-600 border border-red-100 font-bold flex items-center gap-3">
+                                                <Zap size={16} />
+                                                {paymentError}
+                                            </div>
                                         )}
-                                    </button>
-                                    <p className="mt-4 text-xs text-center text-slate-400">
-                                        Secured by Stripe. Cancel anytime.
-                                    </p>
-                                </div>
-                            )}
-                        </>
-                    )}
-                </Card>
+
+                                        {stripePromise && clientSecret ? (
+                                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                                <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
+                                                    <CheckoutForm />
+                                                </Elements>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col items-center">
+                                                <div className="mb-10 w-full rounded-[2rem] bg-slate-900 p-8 text-center text-white shadow-2xl relative overflow-hidden group">
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                                    <span className="block text-6xl font-black tracking-tighter mb-2">€5.00</span>
+                                                    <span className="text-indigo-300 text-xs font-black uppercase tracking-[0.2em]">Weekly Contribution</span>
+                                                </div>
+                                                
+                                                <motion.button
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={initializePayment}
+                                                    disabled={isStartingPayment}
+                                                    className="group relative flex w-full items-center justify-center gap-3 rounded-2xl bg-indigo-600 px-8 py-5 text-lg font-black text-white shadow-xl shadow-indigo-200 transition-all hover:bg-indigo-700 disabled:opacity-70"
+                                                >
+                                                    {isStartingPayment ? (
+                                                        <Spinner className="w-6 h-6 text-current" />
+                                                    ) : (
+                                                        <>
+                                                            {user ? "Establish Support Link" : "Join & Contribute"}
+                                                            <ArrowRight className="h-6 w-6 transition-transform group-hover:translate-x-1" />
+                                                        </>
+                                                    )}
+                                                </motion.button>
+                                                
+                                                <div className="mt-8 flex items-center justify-center gap-8 opacity-40">
+                                                    <div className="h-6 w-12 bg-slate-400 rounded-md shimmer"></div>
+                                                    <div className="h-6 w-12 bg-slate-400 rounded-md shimmer"></div>
+                                                    <div className="h-6 w-12 bg-slate-400 rounded-md shimmer"></div>
+                                                </div>
+                                                
+                                                <p className="mt-6 text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest flex items-center gap-2">
+                                                    <ShieldCheck size={14} className="text-indigo-600" />
+                                                    Securely encrypted by Stripe Infrastructure
+                                                </p>
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    </motion.div>
+                </div>
             </main>
         </div>
     );
