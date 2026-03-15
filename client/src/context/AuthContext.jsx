@@ -92,6 +92,8 @@ export const AuthProvider = ({ children }) => {
 
       return {
         success: false,
+        unverified: error.data?.unverified,
+        email: error.data?.email,
         error: error.message || "Invalid credentials",
       };
     }
@@ -102,10 +104,16 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await api.post("/auth/register", { name, email, password });
 
+      if (res.data.unverified) {
+        return { 
+          success: false, 
+          unverified: true, 
+          email: res.data.email 
+        };
+      }
+
       const { user, token } = res.data;
-
       saveAuth(user, token);
-
       return { success: true };
     } catch (error) {
       console.error("Registration failed:", error);

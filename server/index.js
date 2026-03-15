@@ -5,6 +5,7 @@ const rateLimit = require('express-rate-limit');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const http = require('http');
 const { Server } = require('socket.io');
 const { sendVerificationEmail } = require('./emailService');
 

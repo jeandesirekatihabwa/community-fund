@@ -50,6 +50,7 @@ api.interceptors.response.use(
     );
 
     uiError.status = status;
+    uiError.data = error.response?.data;
     uiError.originalError = error;
 
     return Promise.reject(uiError);
