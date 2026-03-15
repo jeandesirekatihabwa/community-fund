@@ -198,83 +198,66 @@ app.post('/auth/google', authLimiter, async (req, res) => {
 // Helper to generate 6-digit random code
 const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
 
-// Manual Registration
-app.post('/auth/register', authLimiter, async (req, res) => {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password) {
-        return res.status(400).json({ error: 'Name, email, and password are required' });
-    }
+// --- Unified Professional Auth Flow (Initiate -> Verify -> Onboard) ---
+
+/**
+ * Step 1: Initialize Session
+ * Discovers if user exists and sends OTP regardless.
+ */
+app.post('/auth/init', authLimiter, async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required' });
 
     try {
-        const existingUser = await prisma.users.findFirst({
-            where: { email }
-        });
-
-        if (existingUser) {
-            return res.status(400).json({ error: 'User with this email already exists' });
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
+        let user = await prisma.users.findUnique({ where: { email } });
+        
         const verification_code = generateCode();
         const verification_expires = new Date(Date.now() + 600000); // 10 minutes
 
-        const user = await prisma.users.create({
-            data: { 
-                email, 
-                name, 
-                password: hashedPassword,
-                verification_code,
-                verification_expires,
-                is_verified: false
-            }
-        });
-
-        // Try to send email, but don't fail registration if email fails (though it's better to fail)
-        try {
-            await sendVerificationEmail(email, verification_code);
-        } catch (emailError) {
-            console.error("Failed to send verification email:", emailError);
-            // In a real app, you might want to rollback the user creation or tell them to resend
+        if (!user) {
+            // Create a pending user
+            user = await prisma.users.create({
+                data: {
+                    email,
+                    verification_code,
+                    verification_expires,
+                    is_verified: false
+                }
+            });
+        } else {
+            // Update existing user with new code
+            await prisma.users.update({
+                where: { id: user.id },
+                data: { verification_code, verification_expires }
+            });
         }
 
+        await sendVerificationEmail(email, verification_code);
+
         res.json({ 
-            message: 'Registration successful! Please check your email for the verification code.',
-            unverified: true,
-            email: user.email 
+            message: 'Security code dispatched', 
+            isNewUser: !user.name // If no name, they haven't onboarded
         });
     } catch (error) {
-        console.error("Registration error:", error);
-        res.status(500).json({ error: 'Registration failed. Please try again later.' });
+        console.error("Auth Init Error:", error);
+        res.status(500).json({ error: 'Identity discovery failed' });
     }
 });
 
-// Verification Endpoint
+// Step 2: Verify & Authenticate
 app.post('/auth/verify', authLimiter, async (req, res) => {
     const { email, code } = req.body;
-    
-    if (!email || !code) {
-        return res.status(400).json({ error: 'Email and code are required' });
-    }
+    if (!email || !code) return res.status(400).json({ error: 'Email and code are required' });
 
     try {
-        const user = await prisma.users.findFirst({
-            where: { email }
-        });
+        const user = await prisma.users.findUnique({ where: { email } });
 
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        if (user.is_verified) {
-            return res.status(400).json({ error: 'Account already verified' });
-        }
-
-        if (user.verification_code !== code) {
-            return res.status(400).json({ error: 'Invalid verification code' });
+        if (!user || user.verification_code !== code) {
+            return res.status(400).json({ error: 'Invalid security code' });
         }
 
         if (new Date() > user.verification_expires) {
-            return res.status(400).json({ error: 'Code expired' });
+            return res.status(400).json({ error: 'Security code expired' });
         }
 
         // Mark as verified
@@ -287,16 +270,40 @@ app.post('/auth/verify', authLimiter, async (req, res) => {
             }
         });
 
-        const token = jwt.sign({ id: updatedUser.id, email: updatedUser.email }, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' });
+        const token = jwt.sign(
+            { id: updatedUser.id, email: updatedUser.email }, 
+            process.env.JWT_SECRET || 'secret', 
+            { expiresIn: '7d' }
+        );
 
         res.json({ 
             user: updatedUser, 
             token,
-            message: 'Account verified successfully!'
+            isNewUser: !updatedUser.name
         });
     } catch (error) {
         console.error("Verification error:", error);
-        res.status(500).json({ error: 'Verification failed' });
+        res.status(500).json({ error: 'Verification system error' });
+    }
+});
+
+/**
+ * Step 3: Onboarding (For new users)
+ */
+app.post('/auth/onboard', authenticateToken, async (req, res) => {
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ error: 'Full name is required' });
+
+    try {
+        const updatedUser = await prisma.users.update({
+            where: { id: req.user.id },
+            data: { name }
+        });
+
+        res.json({ user: updatedUser });
+    } catch (error) {
+        console.error("Onboarding error:", error);
+        res.status(500).json({ error: 'Profile creation failed' });
     }
 });
 
@@ -333,44 +340,9 @@ app.post('/auth/resend-code', authLimiter, async (req, res) => {
     }
 });
 
-// Manual Login
-app.post('/auth/login', authLimiter, async (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) {
-        return res.status(400).json({ error: 'Email and password are required' });
-    }
-
-    try {
-        const user = await prisma.users.findFirst({
-            where: { email }
-        });
-
-        if (!user || !user.password) {
-            return res.status(401).json({ error: 'Invalid email or password' });
-        }
-
-        const match = await bcrypt.compare(password, user.password);
-        if (!match) {
-            return res.status(401).json({ error: 'Invalid email or password' });
-        }
-
-        if (!user.is_verified) {
-            return res.status(403).json({ 
-                error: 'Account not verified. Please check your email.',
-                unverified: true,
-                email: user.email
-            });
-        }
-
-        // Exclude password from response
-        const { password: _, ...userWithoutPassword } = user;
-        const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' });
-
-        res.json({ user: userWithoutPassword, token });
-    } catch (error) {
-        console.error("Login error:", error);
-        res.status(500).json({ error: 'Login failed' });
-    }
+// --- Legacy Login Support (Disabled in Unified Flow) ---
+app.post('/auth/login', authLimiter, (req, res) => {
+    res.status(410).json({ error: 'Please use the unified security code entry.' });
 });
 
 app.get('/', (req, res) => {

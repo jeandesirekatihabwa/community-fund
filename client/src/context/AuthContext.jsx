@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }) => {
 
         // Check token expiration
         if (decoded?.exp && decoded.exp * 1000 < Date.now()) {
-          console.warn("Token expired");
+          console.warn("Session expired");
           logoutLocal();
         } else {
           setUser(JSON.parse(storedUser));
@@ -57,91 +57,77 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("user");
   };
 
-  // Google login
+  // Google login (Social Link)
   const login = async (credential) => {
     try {
       const res = await api.post("/auth/google", { token: credential });
-
       const { user, token } = res.data;
-
       saveAuth(user, token);
-
-      return { success: true };
+      return { success: true, isNewUser: !user.name };
     } catch (error) {
       console.error("Google login failed:", error);
-
       return {
         success: false,
-        error: error.message || "Google login failed",
+        error: error.message || "Google secure link failed",
       };
     }
   };
 
-  // Email login
-  const loginWithEmail = async (email, password) => {
+  // Professional Step 1: Initiate Identity Discovery
+  const initiateAuth = async (email) => {
     try {
-      const res = await api.post("/auth/login", { email, password });
-
-      const { user, token } = res.data;
-
-      saveAuth(user, token);
-
-      return { success: true };
+      const res = await api.post("/auth/init", { email });
+      return { 
+        success: true, 
+        message: res.data.message,
+        isNewUser: res.data.isNewUser
+      };
     } catch (error) {
-      console.error("Email login failed:", error);
-
+      console.error("Auth Init failed:", error);
       return {
         success: false,
-        unverified: error.data?.unverified,
-        email: error.data?.email,
-        error: error.message || "Invalid credentials",
+        error: error.response?.data?.error || "Identity discovery failed",
       };
     }
   };
 
-  // Email registration
-  const registerWithEmail = async (name, email, password) => {
-    try {
-      const res = await api.post("/auth/register", { name, email, password });
-
-      if (res.data.unverified) {
-        return { 
-          success: false, 
-          unverified: true, 
-          email: res.data.email 
-        };
-      }
-
-      const { user, token } = res.data;
-      saveAuth(user, token);
-      return { success: true };
-    } catch (error) {
-      console.error("Registration failed:", error);
-
-      return {
-        success: false,
-        error: error.message || "Registration failed",
-      };
-    }
-  };
-
-  // Email verification
+  // Professional Step 2: Verify Security Code
   const verify = async (email, code) => {
     try {
       const res = await api.post("/auth/verify", { email, code });
-      const { user, token } = res.data;
+      const { user, token, isNewUser } = res.data;
       saveAuth(user, token);
-      return { success: true };
+      return { success: true, isNewUser };
     } catch (error) {
       console.error("Verification failed:", error);
       return {
         success: false,
-        error: error.message || "Invalid or expired code",
+        error: error.response?.data?.error || "Invalid security code",
       };
     }
   };
 
-  // Resend code
+  // Professional Step 3: Global Onboarding
+  const onboard = async (name) => {
+    try {
+      const res = await api.post("/auth/onboard", { name });
+      const { user } = res.data;
+      
+      // Update local state and storage
+      setUser(user);
+      localStorage.setItem("user", JSON.stringify(user));
+      
+      return { success: true };
+    } catch (error) {
+      console.error("Onboarding failed:", error);
+      return {
+        success: false,
+        error: error.response?.data?.error || "Profile creation failed",
+      };
+    }
+  };
+
+  // Resend code (Unified)
   const resendCode = async (email) => {
     try {
       const res = await api.post("/auth/resend-code", { email });
@@ -150,7 +136,7 @@ export const AuthProvider = ({ children }) => {
       console.error("Resend code failed:", error);
       return {
         success: false,
-        error: error.message || "Failed to resend code",
+        error: error.response?.data?.error || "Failed to resend code",
       };
     }
   };
@@ -162,10 +148,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.warn("Google logout warning:", error);
     }
-
     logoutLocal();
-    // Force a hard reload if necessary to completely wipe state,
-    // or just rely on state update. We rely on state update for SPA feel.
   };
 
   return (
@@ -173,10 +156,10 @@ export const AuthProvider = ({ children }) => {
       value={{
         user,
         loading,
-        login,
-        loginWithEmail,
-        registerWithEmail,
+        initiateAuth,
         verify,
+        onboard,
+        login, // google login
         resendCode,
         logout,
       }}
@@ -185,103 +168,3 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
-
-
-/*import { createContext, useState, useEffect, useContext } from 'react';
-import { googleLogout } from '@react-oauth/google';
-import { jwtDecode } from "jwt-decode";
-import api from '../lib/api';
-
-const AuthContext = createContext();
-
-export const useAuth = () => useContext(AuthContext);
-
-export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const initializeAuth = () => {
-            const token = localStorage.getItem('token');
-            if (token) {
-                try {
-                    const decoded = jwtDecode(token);
-                    const storedUser = localStorage.getItem('user');
-                    if (storedUser) {
-                        setUser(JSON.parse(storedUser));
-                    }
-                } catch (e) {
-                    console.error("Invalid token", e);
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('user');
-                }
-            }
-            setLoading(false);
-        };
-        
-        initializeAuth();
-    }, []);
-
-    const login = async (credential) => {
-        try {
-            const res = await api.post('/auth/google', { token: credential });
-            const { user, token } = res.data;
-            setUser(user);
-            localStorage.setItem('token', token);
-            localStorage.setItem('user', JSON.stringify(user));
-            return true;
-        } catch (error) {
-            console.error("Login failed", error);
-            return false;
-        }
-    };
-
-    const loginWithEmail = async (email, password) => {
-        try {
-            const res = await api.post('/auth/login', { email, password });
-            const { user, token } = res.data;
-            setUser(user);
-            localStorage.setItem('token', token);
-            localStorage.setItem('user', JSON.stringify(user));
-            return { success: true };
-        } catch (error) {
-            console.error("Email login failed", error);
-            return { 
-                success: false, 
-                error: error.response?.data?.error || "Invalid credentails" 
-            };
-        }
-    };
-
-    const registerWithEmail = async (name, email, password) => {
-        try {
-            const res = await api.post('/auth/register', { name, email, password });
-            const { user, token } = res.data;
-            setUser(user);
-            localStorage.setItem('token', token);
-            localStorage.setItem('user', JSON.stringify(user));
-            return { success: true };
-        } catch (error) {
-            console.error("Registration failed", error);
-            return { 
-                success: false, 
-                error: error.response?.data?.error || "Registration failed" 
-            };
-        }
-    };
-
-    const logout = () => {
-        googleLogout();
-        setUser(null);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-    };
-
-    return (
-        <AuthContext.Provider value={{ user, login, loginWithEmail, registerWithEmail, logout, loading }}>
-            {children}
-        </AuthContext.Provider>
-    );
-};
-*/
