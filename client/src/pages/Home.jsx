@@ -194,7 +194,11 @@ export default function Home() {
                                                         Back to Mission
                                                     </button>
                                                 </div>
-                                                <ProfessionalGooglePay amount={500} currency="EUR" />
+                                                <AnimatePresence mode="wait">
+                                                    <Elements stripe={stripePromise} appearance={appearance}>
+                                                        <ProfessionalGooglePay amount={500} currency="EUR" />
+                                                    </Elements>
+                                                </AnimatePresence>
                                             </div>
                                         ) : (
                                             <div className="flex flex-col items-center">

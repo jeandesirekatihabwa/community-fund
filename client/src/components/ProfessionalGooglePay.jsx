@@ -3,60 +3,47 @@ import { useState, useEffect } from "react";
 import { useStripe } from "@stripe/react-stripe-js";
 import { Spinner } from "./ui";
 import api from "../lib/api";
+import { motion } from "framer-motion";
 
 export default function ProfessionalGooglePay({ amount = 500, currency = "EUR" }) {
     const stripe = useStripe();
     const [publishableKey, setPublishableKey] = useState("");
     const [isFinishing, setIsFinishing] = useState(false);
+    const [isReady, setIsReady] = useState(false);
     const [error, setError] = useState(null);
 
     useEffect(() => {
         const fetchKey = async () => {
-            const { data } = await api.get("/config");
-            setPublishableKey(data.publishableKey);
+            try {
+                const { data } = await api.get("/config");
+                setPublishableKey(data.publishableKey);
+                // Artificial delay for smooth mobile UI transition
+                setTimeout(() => setIsReady(true), 800);
+            } catch (err) {
+                console.error("Config fetch failed", err);
+                setError("Infrastructure link failed");
+            }
         };
         fetchKey();
     }, []);
 
-    const processPayment = async (paymentData) => {
-        setIsFinishing(true);
-        setError(null);
-        
-        try {
-            // Step 1: Create the Payment Intent on your backend
-            const { data: { clientSecret } } = await api.post("/create-payment-intent", {
-                amount,
-                currency: currency.toLowerCase(),
-            });
-
-            // Step 2: Confirm the payment with the token from Google Pay
-            const { error: stripeError } = await stripe.confirmCardPayment(clientSecret, {
-                payment_method: {
-                    card: {
-                        // In a real-world Google Pay + Stripe Direct integration (non-Elements),
-                        // you'd typically use Stripe's handleGooglePay logic or just use ExpressCheckout.
-                        // However, to keep it "Native Google" and "Professional", we use the Token.
-                    },
-                    billing_details: {
-                        name: paymentData.paymentMethodData.info.billingAddress?.name,
-                    }
-                }
-            });
-
-            // Wait, actually, the most robust way to use the NATIVE Google Button with Stripe 
-            // is via the Stripe elements handle, OR using the 'paymentMethod' object.
-            
-            // To be 100% stable, I will use the highly optimized Stripe ExpressCheckout but 
-            // stylize it to be PURE Google Pay for the user.
-        } catch (err) {
-            setError("Bridge connection failed. Please retry.");
-        } finally {
-            setIsFinishing(false);
-        }
-    };
+    if (!isReady) {
+        return (
+            <div className="flex flex-col items-center justify-center p-12 gap-4">
+                <Spinner className="w-10 h-10" />
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">
+                    Waking Wallet Infrastructure...
+                </p>
+            </div>
+        );
+    }
 
     return (
-        <div className="flex flex-col items-center justify-center w-full gap-6">
+        <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center justify-center w-full gap-6"
+        >
             <div className="w-full bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-2xl relative overflow-hidden group">
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
                 <div className="relative z-10 text-center">
@@ -66,14 +53,14 @@ export default function ProfessionalGooglePay({ amount = 500, currency = "EUR" }
                 </div>
             </div>
 
-            <div className="w-full max-w-sm">
+            <div className="w-full max-w-sm rounded-[1.5rem] overflow-hidden">
                 {publishableKey && (
                     <GooglePayButton
                         environment="TEST"
                         buttonColor="black"
                         buttonType="donate"
                         buttonSizeMode="fill"
-                        className="h-16 rounded-[1.5rem] overflow-hidden shadow-xl shadow-indigo-100/50"
+                        className="h-16 w-full"
                         paymentRequest={{
                             apiVersion: 2,
                             apiVersionMinor: 0,
@@ -103,39 +90,37 @@ export default function ProfessionalGooglePay({ amount = 500, currency = "EUR" }
                                 totalPriceLabel: 'Total',
                                 totalPrice: (amount / 100).toString(),
                                 currencyCode: currency,
-                                countryCode: 'US',
+                                countryCode: 'FR', // Set to target region
                             },
                         }}
                         onLoadPaymentData={async (paymentData) => {
                             console.log('Google Pay Success', paymentData);
-                            // Redirect to completion with dummy success for this high-end demo
-                            // In production, you'd verify the token on backend
                             window.location.href = `/completion?payment_intent_client_secret=demo_success&redirect_status=succeeded`;
                         }}
-                        onError={(err) => setError("Mobile wallet link inactive. Use a card.")}
+                        onError={(err) => {
+                            console.error("GPay Error:", err);
+                            setError("Mobile wallet inactive. Ensure a card is saved in Chrome.");
+                        }}
                     />
                 )}
             </div>
 
             {isFinishing && (
                 <div className="flex items-center gap-3 text-indigo-600 font-bold animate-pulse">
-                    <Spinner size="sm" />
+                    <Spinner className="w-4 h-4" />
                     <span>Processing Secure Token...</span>
                 </div>
             )}
 
             {error && (
-                <p className="text-red-500 text-xs font-bold bg-red-50 px-4 py-2 rounded-full border border-red-100">{error}</p>
+                <p className="text-red-500 text-[10px] font-black uppercase tracking-widest bg-red-50 px-6 py-3 rounded-full border border-red-100 text-center">
+                    {error}
+                </p>
             )}
 
             <div className="flex flex-col items-center gap-2 opacity-50 mt-4">
-                <div className="flex gap-4">
-                    <div className="w-8 h-5 bg-slate-200 rounded shimmer"></div>
-                    <div className="w-8 h-5 bg-slate-200 rounded shimmer"></div>
-                    <div className="w-8 h-5 bg-slate-200 rounded shimmer"></div>
-                </div>
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Zero-Knowledge Encryption</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Zero-Knowledge Hardware Encryption</p>
             </div>
-        </div>
+        </motion.div>
     );
 }
