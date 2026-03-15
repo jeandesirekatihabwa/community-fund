@@ -4,7 +4,6 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
 const http = require('http');
 const { Server } = require('socket.io');
 const { sendVerificationEmail } = require('./emailService');
@@ -21,6 +20,23 @@ const allowedOrigins = [
 
 const app = express();
 const server = http.createServer(app);
+
+let prisma;
+try {
+  prisma = new PrismaClient({
+    errorFormat: 'minimal',
+  });
+  
+  // Test database connection
+  prisma.$connect()
+    .then(() => console.log('[Database] Connected successfully.'))
+    .catch((err) => {
+      console.error('[Database] Connection failed:', err.message);
+    });
+} catch (e) {
+  console.error('[Database] Prisma initialization failed:', e.message);
+}
+
 const io = new Server(server, {
     cors: {
         origin: allowedOrigins.length > 0 ? allowedOrigins : '*',
@@ -129,7 +145,7 @@ app.get('/config', (req, res) => {
 
 const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
