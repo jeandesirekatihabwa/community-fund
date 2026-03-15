@@ -366,8 +366,65 @@ app.post('/auth/login', authLimiter, (req, res) => {
     res.status(410).json({ error: 'Please use the unified security code entry.' });
 });
 
-app.get('/', (req, res) => {
-    res.send('Weekly Contribution API is running');
+// --- 🛰️ Professional Stripe Webhook Handler ---
+// This ensures our database is updated even if the user closes their browser
+app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    let event;
+
+    try {
+        event = stripe.webhooks.constructEvent(
+            req.body,
+            sig,
+            process.env.STRIPE_WEBHOOK_SECRET
+        );
+    } catch (err) {
+        console.error(`[Webhook Error] Signature verification failed:`, err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    // Handle the event
+    switch (event.type) {
+        case 'payment_intent.succeeded':
+            const paymentIntent = event.data.object;
+            console.log(`[Webhook] PaymentIntent succeeded: ${paymentIntent.id}`);
+            
+            // Atomic database record
+            try {
+                const userId = paymentIntent.metadata.user_id;
+                if (userId) {
+                    const existing = await prisma.contributions.findFirst({
+                        where: { payment_intent_id: paymentIntent.id }
+                    });
+
+                    if (!existing) {
+                        await prisma.contributions.create({
+                            data: {
+                                amount: paymentIntent.amount,
+                                currency: paymentIntent.currency,
+                                payment_intent_id: paymentIntent.id,
+                                status: 'succeeded',
+                                user_id: parseInt(userId)
+                            }
+                        });
+                        console.log(`[Webhook] Recorded contribution for user ${userId}`);
+                        io.emit('stats_updated');
+                    }
+                }
+            } catch (dbErr) {
+                console.error(`[Webhook DB Error]`, dbErr.message);
+            }
+            break;
+            
+        case 'payment_intent.payment_failed':
+            console.warn(`[Webhook] Payment failed: ${event.data.object.id}`);
+            break;
+            
+        default:
+            console.log(`[Webhook] Unhandled event type ${event.type}`);
+    }
+
+    res.json({ received: true });
 });
 
 // --- 💳 Professional Impact Payment System (Scratch Rebuild) ---

@@ -222,10 +222,17 @@ export default function ImpactPaymentSystem({ amount = 500, onSuccess }) {
                 )}
             </AnimatePresence>
 
-            <div className="flex justify-center items-center gap-6 mt-4 opacity-50 grayscale pointer-events-none">
-                <Shield size={16} className="text-slate-400" />
-                <div className="h-4 w-px bg-slate-200"></div>
-                <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">SSL 256-Bit Financial Encryption</p>
+            <div className="flex flex-col items-center gap-4 mt-4 opacity-50">
+                <div className="flex justify-center items-center gap-6 grayscale pointer-events-none">
+                    <Shield size={16} className="text-slate-400" />
+                    <div className="h-4 w-px bg-slate-200"></div>
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">SSL 256-Bit Financial Encryption</p>
+                </div>
+                <div className="px-3 py-1 bg-slate-100 rounded-full border border-slate-200">
+                    <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest">
+                        System Status: {paymentRequest ? "Native Wallet Recognized" : "Card Fallback Active"}
+                    </p>
+                </div>
             </div>
         </div>
     );
